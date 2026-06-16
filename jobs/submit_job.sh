@@ -1,11 +1,16 @@
 #!/bin/bash
 
+#SBATCH --job-name=growth_model
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --time=02:00:00
 #SBATCH --partition=Teaching
 #SBATCH --gres=gpu:1
-#SBATCH --mem=12G
+#SBATCH --mem=8G
+
+echo "--- SLURM JOB START ---"
+echo "Model requested: $1"
+echo "Current directory is: $(pwd)"
 
 # --- environment setup (edit for your cluster) ---------------------
 # 1. Load the Edinburgh GPU toolchain (Crucial for the cluster)
@@ -30,6 +35,8 @@ fi
 mkdir -p logs outputs
 
 # --- run the chosen model's training script --------------------------
-echo "Starting training for ${MODEL_NAME} from directory: $(pwd)"
+echo "Navigating to models/${MODEL_NAME}..."
 cd "models/${MODEL_NAME}"
+echo "Running train.py..."
 python train.py
+echo "--- SLURM JOB END ---"

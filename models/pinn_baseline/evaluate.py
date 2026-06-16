@@ -21,6 +21,10 @@ from plots import plot_spatial_error
 
 
 def main():
+    # Auto-detect GPU (CUDA for cluster, MPS for Mac, or CPU fallback)
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+    print(f"\nUsing device: {device}")
+
     # 1. Load data and rebuild the test features
     # ------------------------------------------------------------
     df12, df23, common_ids = load_data(config.DATA_PATH_UNSEEN)
@@ -47,7 +51,7 @@ def main():
 
     # 3. Rebuild the model and load its weights
     # ------------------------------------------------------------
-    pinn = PINN(n_other=len(other_idxs))
+    pinn = PINN(n_other=len(other_idxs)).to(device)
     pinn.load_state_dict(checkpoint["model_state"])
     pinn.eval()
 
@@ -59,13 +63,13 @@ def main():
     # Variable names:
     # Xte_o : Test features (other than AGE) scaled as tensors
     # Xte_a : Test AGE feature scaled as a tensor
-    Xte_o = torch.tensor(scaler_Xo.transform(X_test_other), dtype=torch.float32)
-    Xte_a = torch.tensor(scaler_age.transform(X_test_age), dtype=torch.float32)
+    Xte_o = torch.tensor(scaler_Xo.transform(X_test_other), dtype=torch.float32).to(device)
+    Xte_a = torch.tensor(scaler_age.transform(X_test_age), dtype=torch.float32).to(device)
 
     # 5. Predict and evaluate
     # ------------------------------------------------------------
     with torch.no_grad():
-        y_pred_scaled = pinn(Xte_o, Xte_a).numpy().reshape(-1, 1)
+        y_pred_scaled = pinn(Xte_o, Xte_a).cpu().numpy().reshape(-1, 1)
         y_pred = scaler_y.inverse_transform(y_pred_scaled).ravel()
 
     reuben_metrics(y_test, y_pred, "PINN (reloaded)")

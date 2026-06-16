@@ -99,8 +99,8 @@ def main():
     torch.manual_seed(config.RANDOM_SEED)
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
 
-    # Auto-detect and use Apple Silicon (M1/M2) GPU if available
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    # Auto-detect GPU (CUDA for cluster, MPS for Mac, or CPU fallback)
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     print(f"\nUsing device: {device}")
     
     all_results = {}
