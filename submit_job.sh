@@ -27,8 +27,12 @@
 #SBATCH --mem=8G
 
 # --- environment setup (edit for your cluster) ---------------------
-# module load python/3.10
-# source ~/envs/pinn_env/bin/activate
+# Initialize Conda and activate your environment
+eval "$(conda shell.bash hook)"
+conda activate diss_experiments
+
+# Ensure we run from the project root, no matter where the script is located
+cd "${SLURM_SUBMIT_DIR}"
 
 MODEL_NAME=$1
 
