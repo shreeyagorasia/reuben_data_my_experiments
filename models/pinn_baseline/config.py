@@ -39,7 +39,7 @@ HIDDEN_SIZE = 128             # width of each hidden layer (Reuben: 128)
 LAMBDA_PH = 1.0                # weight on the physics loss term
 LAMBDA_L1 = 1e-5                # weight on the L1 weight-penalty term
 
-EPOCHS = 5 #FIND NO EPOCHS RUEBEN USED and CHANGE to that                  # max number of training epochs
+EPOCHS = 1000 #CHANGE 5 to 1000 for real runs                 # max number of training epochs
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-4
 EARLY_STOP_PATIENCE = 50       # stop if val loss hasn't improved for this many epochs
