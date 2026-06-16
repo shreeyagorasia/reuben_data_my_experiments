@@ -1,3 +1,4 @@
+#!/bin/sh
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --time=02:00:00
