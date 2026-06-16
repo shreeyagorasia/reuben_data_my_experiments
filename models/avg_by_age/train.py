@@ -9,41 +9,11 @@ import os
 import csv
 import numpy as np
 import pandas as pd
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 import config
 from common.data_utils import load_data, get_kfold_splits
 from common.metrics import reuben_metrics
-
-def plot_spatial_error(X_coords, Y_coords, y_test, y_pred, title, output_dir, filename="spatial_error_map.png"):
-    fig, ax = plt.subplots(figsize=(6, 5))
-    abs_err = np.abs(np.array(y_test) - np.array(y_pred))
-    VMIN, VMAX = 0, 15
-    cmap = plt.cm.viridis
-    
-    hb = ax.hexbin(
-        X_coords, Y_coords, C=abs_err, reduce_C_function=np.mean,
-        gridsize=50, cmap=cmap, vmin=VMIN, vmax=VMAX, linewidths=0.2
-    )
-    
-    mae = abs_err.mean()
-    acc = (1 - np.mean(abs_err / (np.array(y_test) + 1e-8))) * 100
-    ax.set_title(f"{title}\nMAE = {mae:.2f}m   Acc = {acc:.1f}%", fontsize=10, fontweight='bold')
-    ax.set_xlabel("Easting (OS National Grid)", fontsize=8)
-    ax.set_ylabel("Northing (OS National Grid)", fontsize=8)
-    ax.tick_params(labelsize=7)
-    
-    cb = fig.colorbar(hb, ax=ax, fraction=0.035, pad=0.04)
-    cb.set_label("Mean Absolute Error (m)", fontsize=8)
-    cb.ax.tick_params(labelsize=7)
-    
-    plt.tight_layout()
-    plot_path = os.path.join(output_dir, filename)
-    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
-    plt.close()
-    print(f"Saved spatial error map to {plot_path}")
+from plots import plot_spatial_error, plot_spatial_signed_error
 
 def run_avg_by_age(df_train, df_test, run_name=""):
     """Runs the Space-for-Time cohort lookup logic for a given train/test split."""
@@ -117,6 +87,7 @@ def main():
     X_coords = df23_unseen["X"].values
     Y_coords = df23_unseen["Y"].values
     plot_spatial_error(X_coords, Y_coords, df23_unseen[config.TARGET_COL].values, y_pred_unseen, "(b) AvgByAge Baseline", config.OUTPUT_DIR)
+    plot_spatial_signed_error(X_coords, Y_coords, df23_unseen[config.TARGET_COL].values, y_pred_unseen, "(b) AvgByAge Baseline", config.OUTPUT_DIR)
 
 if __name__ == "__main__":
     main()

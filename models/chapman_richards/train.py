@@ -28,7 +28,7 @@ from scipy.optimize import curve_fit
 from common.data_utils import load_data, get_kfold_splits
 from common.metrics import reuben_metrics
 from model import chapman_richards
-from plots import plot_cr_fit, plot_spatial_error
+from plots import plot_cr_fit, plot_spatial_error, plot_spatial_signed_error
 
 def run_cr(df_train, df_test, run_name=""):
     """Fits the CR model to the training set and evaluates it on the test set."""
@@ -115,6 +115,7 @@ def main():
     X_coords = df23_unseen["X"].values
     Y_coords = df23_unseen["Y"].values
     plot_spatial_error(X_coords, Y_coords, df23_unseen[config.TARGET_COL].values, y_pred_t2, "(c) Chapman-Richards", config.OUTPUT_DIR)
+    plot_spatial_signed_error(X_coords, Y_coords, df23_unseen[config.TARGET_COL].values, y_pred_t2, "(c) Chapman-Richards", config.OUTPUT_DIR)
 
 
 if __name__ == "__main__":

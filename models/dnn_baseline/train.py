@@ -16,7 +16,7 @@ import config
 from common.data_utils import load_data, build_feature_arrays, train_val_split, get_kfold_splits
 from common.metrics import reuben_metrics
 from model import DNN
-from plots import plot_training_curve, plot_spatial_error
+from plots import plot_training_curve, plot_spatial_error, plot_spatial_signed_error
 
 def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, device, run_name=""):
     """Handles scaling, splitting, and training for a single run."""
@@ -91,8 +91,8 @@ def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, device, run_name=""
     if run_name:
         print(f"\n--- {run_name} ---")
     metrics = reuben_metrics(y_te_full, y_pred, label=run_name)
-    
-    return metrics, epoch_log, train_hist, val_hist, y_pred
+
+    return metrics, epoch_log, train_hist, val_hist, y_pred, dnn, optimiser, scaler_X, scaler_y
 
 def main():
     np.random.seed(config.RANDOM_SEED)
@@ -114,7 +114,7 @@ def main():
 
     # --- Experiment for Table 4.1 (Temporal, Common Plots) ---
     print("\n--- Running Experiment for Table 4.1: Temporal (Common Plots) ---")
-    metrics_t1, _, _, _, _ = run_training(
+    metrics_t1, *_ = run_training(
         X_train_purged, y_train_purged, X_test_purged, y_test_purged, device, "Temporal (Table 4.1)"
     )
     for k, v in metrics_t1.items():
@@ -123,28 +123,32 @@ def main():
     # --- Experiment for Table 4.3 (3-Fold CV within 2012) ---
     print(f"\n--- Running Experiment for Table 4.3: 3-Fold CV within 2012 (Purged) ---")
     cv12_metrics = []
+    cv43_test_plot_ids = []
     for fold, (tr_idx, te_idx) in enumerate(get_kfold_splits(len(X_train_purged), n_splits=3)):
         print(f"  Training Fold {fold+1}/3...")
-        m, _, _, _, _ = run_training(
-            X_train_purged[tr_idx], y_train_purged[tr_idx], 
+        m, *_ = run_training(
+            X_train_purged[tr_idx], y_train_purged[tr_idx],
             X_train_purged[te_idx], y_train_purged[te_idx], device
         )
         cv12_metrics.append(m)
-        
+        cv43_test_plot_ids.append(df12_purged.index.values[te_idx].tolist())
+
     for k in cv12_metrics[0].keys():
         all_results[f"Table4.3_{k}"] = float(np.mean([m[k] for m in cv12_metrics]))
 
     # --- Experiment for Table 4.4 (3-Fold CV within 2023) ---
     print(f"\n--- Running Experiment for Table 4.4: 3-Fold CV within 2023 (Purged) ---")
     cv23_metrics = []
+    cv44_test_plot_ids = []
     for fold, (tr_idx, te_idx) in enumerate(get_kfold_splits(len(X_test_purged), n_splits=3)):
         print(f"  Training Fold {fold+1}/3...")
-        m, _, _, _, _ = run_training(
-            X_test_purged[tr_idx], y_test_purged[tr_idx], 
+        m, *_ = run_training(
+            X_test_purged[tr_idx], y_test_purged[tr_idx],
             X_test_purged[te_idx], y_test_purged[te_idx], device
         )
         cv23_metrics.append(m)
-        
+        cv44_test_plot_ids.append(df23_purged.index.values[te_idx].tolist())
+
     for k in cv23_metrics[0].keys():
         all_results[f"Table4.4_{k}"] = float(np.mean([m[k] for m in cv23_metrics]))
 
@@ -155,16 +159,40 @@ def main():
         df12_unseen, df23_unseen
     )
     print(f"\n--- Running Experiment for Table 4.2: Temporal (Unseen Plots) ---")
-    metrics_t2, ep_log, tr_hist, val_hist, y_pred_unseen = run_training(
+    metrics_t2, ep_log, tr_hist, val_hist, y_pred_unseen, dnn_t2, optimiser_t2, scaler_X_t2, scaler_y_t2 = run_training(
         X_train_unseen, y_train_unseen, X_test_unseen, y_test_unseen, device, "Temporal (Table 4.2)"
     )
     for k, v in metrics_t2.items():
         all_results[f"Table4.2_{k}"] = v
-        
+
     # We only save plots for the "unseen" temporal experiment, as it's the most comprehensive
     plot_training_curve(ep_log, tr_hist, val_hist, config.OUTPUT_DIR)
-    plot_spatial_error(X_coords_unseen, Y_coords_unseen, y_test_unseen, y_pred_unseen, 
+    plot_spatial_error(X_coords_unseen, Y_coords_unseen, y_test_unseen, y_pred_unseen,
                        "(f) DNN Temporal Error (Unseen)", config.OUTPUT_DIR)
+    plot_spatial_signed_error(X_coords_unseen, Y_coords_unseen, y_test_unseen, y_pred_unseen,
+                       "(f) DNN Temporal Error (Unseen)", config.OUTPUT_DIR)
+
+    # Checkpoint (model + scalers + history) is based on Table 4.2 (the "primary" experiment)
+    checkpoint = {
+        "model_state": dnn_t2.state_dict(),
+        "optimizer_state": optimiser_t2.state_dict(),
+        "history": {
+            "train_loss": tr_hist,
+            "val_loss": val_hist,
+            "epochs": ep_log,
+        },
+        "feature_list": config.FEATURES,
+        "scaler_X": scaler_X_t2,
+        "scaler_y": scaler_y_t2,
+        "final_metrics": metrics_t2,
+        "cv_test_plot_ids": {
+            "Table4.3": cv43_test_plot_ids,
+            "Table4.4": cv44_test_plot_ids,
+        },
+    }
+    ckpt_path = os.path.join(config.OUTPUT_DIR, "checkpoint.pt")
+    torch.save(checkpoint, ckpt_path)
+    print(f"\nSaved checkpoint to {ckpt_path}")
 
     # --- Save ALL metrics to the results CSV ---
     results_df = pd.DataFrame(list(all_results.items()), columns=["Metric", "Value"])

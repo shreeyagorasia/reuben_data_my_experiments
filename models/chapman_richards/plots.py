@@ -13,6 +13,10 @@ import matplotlib.colors as mcolors
 
 from model import chapman_richards
 
+PINK_WHITE_BLUE = mcolors.LinearSegmentedColormap.from_list(
+    "pink_white_blue", ["#e87fa0", "#ffffff", "#3b6fb6"]
+)
+
 def plot_cr_fit(ages_2012, y_train, cr_ymax, cr_k, cr_p, output_dir):
     """Plots the fitted Chapman-Richards curve against the 2012 data."""
     # Generate 200 sorted, evenly spaced ages for smooth line plot
@@ -79,3 +83,43 @@ def plot_spatial_error(X_coords, Y_coords, y_test, y_pred, title, output_dir, fi
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     plt.close()
     print(f"Saved spatial error map to {plot_path}")
+
+def plot_spatial_signed_error(X_coords, Y_coords, y_test, y_pred, title, output_dir, filename="spatial_signed_error_map.png"):
+    """Plots a hexbin map of signed error (actual - predicted) across spatial coordinates."""
+    fig, ax = plt.subplots(figsize=(6, 5))
+
+    signed_err = np.array(y_test) - np.array(y_pred)
+    VMIN, VMAX = -10, 10
+
+    hb = ax.hexbin(
+        X_coords, Y_coords,
+        C=signed_err,
+        reduce_C_function=np.mean,
+        gridsize=50,
+        cmap=PINK_WHITE_BLUE,
+        vmin=VMIN,
+        vmax=VMAX,
+        linewidths=0.2,
+    )
+
+    mean_signed = signed_err.mean()
+
+    ax.set_title(f"{title}\nMean Signed Error = {mean_signed:+.2f}m", fontsize=10, fontweight='bold')
+    ax.set_xlabel("Easting (OS National Grid)", fontsize=8)
+    ax.set_ylabel("Northing (OS National Grid)", fontsize=8)
+    ax.tick_params(labelsize=7)
+
+    cb = fig.colorbar(hb, ax=ax, fraction=0.035, pad=0.04)
+    cb.set_label("Signed Error, actual - predicted (m)\npink = underpredicted, blue = overpredicted", fontsize=8)
+    cb.ax.tick_params(labelsize=7)
+
+    # Standardise border (no red/green highlighting)
+    for spine in ax.spines.values():
+        spine.set_edgecolor('black')
+        spine.set_linewidth(1.0)
+
+    plt.tight_layout()
+    plot_path = os.path.join(output_dir, filename)
+    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"Saved spatial signed error map to {plot_path}")

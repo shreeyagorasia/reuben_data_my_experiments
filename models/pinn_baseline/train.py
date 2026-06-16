@@ -49,7 +49,7 @@ from common.data_utils import (
 )
 from common.metrics import reuben_metrics
 from model import PINN, pinn_loss
-from plots import plot_training_curve, plot_spatial_error
+from plots import plot_training_curve, plot_spatial_error, plot_spatial_signed_error
 
 def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, cr_params, device, run_name=""):
     """Handles scaling, splitting, and training the PINN for a single given subset of data."""
@@ -177,11 +177,14 @@ def run_table_4_3(cr_params_purged, device):
 
     print("\n--- Running Experiment for Table 4.3: 3-Fold CV within 2012 (Purged) ---")
     cv_metrics = []
+    cv_test_plot_ids = []
     for fold, (tr_idx, te_idx) in enumerate(get_kfold_splits(len(X_tr), n_splits=3)):
         print(f"  Training Fold {fold+1}/3...")
         m, *_ = run_training(X_tr[tr_idx], y_tr[tr_idx], X_tr[te_idx], y_tr[te_idx], cr_params_purged, device)
         cv_metrics.append(m)
-    return {f"Table4.3_{k}": float(np.mean([m[k] for m in cv_metrics])) for k in cv_metrics[0].keys()}
+        cv_test_plot_ids.append(df12.index.values[te_idx].tolist())
+    metrics_out = {f"Table4.3_{k}": float(np.mean([m[k] for m in cv_metrics])) for k in cv_metrics[0].keys()}
+    return metrics_out, cv_test_plot_ids
 
 
 def run_table_4_4(cr_params_purged, device):
@@ -191,11 +194,14 @@ def run_table_4_4(cr_params_purged, device):
 
     print("\n--- Running Experiment for Table 4.4: 3-Fold CV within 2023 (Purged) ---")
     cv_metrics = []
+    cv_test_plot_ids = []
     for fold, (tr_idx, te_idx) in enumerate(get_kfold_splits(len(X_te), n_splits=3)):
         print(f"  Training Fold {fold+1}/3...")
         m, *_ = run_training(X_te[tr_idx], y_te[tr_idx], X_te[te_idx], y_te[te_idx], cr_params_purged, device)
         cv_metrics.append(m)
-    return {f"Table4.4_{k}": float(np.mean([m[k] for m in cv_metrics])) for k in cv_metrics[0].keys()}
+        cv_test_plot_ids.append(df23.index.values[te_idx].tolist())
+    metrics_out = {f"Table4.4_{k}": float(np.mean([m[k] for m in cv_metrics])) for k in cv_metrics[0].keys()}
+    return metrics_out, cv_test_plot_ids
 
 
 def run_table_4_2(cr_params_unseen, device):
@@ -211,6 +217,7 @@ def run_table_4_2(cr_params_unseen, device):
 
     table_results = {f"Table4.2_{k}": v for k, v in metrics.items()}
     extras = {
+        "metrics": metrics,
         "ep_log": ep_log, "tr_hist": tr_hist, "val_hist": val_hist,
         "y_pred": y_pred, "y_te": y_te, "pinn": pinn, "optimiser": optimiser,
         "scaler_Xo": scaler_Xo, "scaler_age": scaler_age, "scaler_y": scaler_y,
@@ -257,13 +264,17 @@ def main():
 
     results = load_existing_results()
     table_4_2_extras = None
+    cv_test_plot_ids_4_3 = None
+    cv_test_plot_ids_4_4 = None
 
     if "4.1" in tables:
         results.update(run_table_4_1(cr_params_purged, device))
     if "4.3" in tables:
-        results.update(run_table_4_3(cr_params_purged, device))
+        t3_results, cv_test_plot_ids_4_3 = run_table_4_3(cr_params_purged, device)
+        results.update(t3_results)
     if "4.4" in tables:
-        results.update(run_table_4_4(cr_params_purged, device))
+        t4_results, cv_test_plot_ids_4_4 = run_table_4_4(cr_params_purged, device)
+        results.update(t4_results)
     if "4.2" in tables:
         t2_results, table_4_2_extras = run_table_4_2(cr_params_unseen, device)
         results.update(t2_results)
@@ -291,6 +302,11 @@ def main():
             "scaler_age": e["scaler_age"],
             "scaler_y": e["scaler_y"],
             "cr_params": e["cr_params"],
+            "final_metrics": e["metrics"],
+            "cv_test_plot_ids": {
+                "Table4.3": cv_test_plot_ids_4_3,
+                "Table4.4": cv_test_plot_ids_4_4,
+            },
         }
         ckpt_path = os.path.join(config.OUTPUT_DIR, "checkpoint.pt")
         torch.save(checkpoint, ckpt_path)
@@ -298,6 +314,10 @@ def main():
 
         plot_training_curve(e["ep_log"], e["tr_hist"], e["val_hist"], config.OUTPUT_DIR)
         plot_spatial_error(
+            e["X_coords"], e["Y_coords"], e["y_te"], e["y_pred"],
+            "(g) PINN Baseline", config.OUTPUT_DIR
+        )
+        plot_spatial_signed_error(
             e["X_coords"], e["Y_coords"], e["y_te"], e["y_pred"],
             "(g) PINN Baseline", config.OUTPUT_DIR
         )

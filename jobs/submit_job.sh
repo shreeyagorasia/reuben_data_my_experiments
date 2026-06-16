@@ -36,7 +36,13 @@ mkdir -p logs outputs
 
 # --- run the chosen model's training script --------------------------
 echo "Navigating to models/${MODEL_NAME}..."
-cd "models/${MODEL_NAME}"
+
+if [ ! -d "models/${MODEL_NAME}" ]; then
+    echo "Error: Directory models/${MODEL_NAME} does not exist."
+    exit 1
+fi
+cd "models/${MODEL_NAME}" || exit 1
+
 echo "Running train.py..."
-python train.py
+python -u train.py
 echo "--- SLURM JOB END ---"
