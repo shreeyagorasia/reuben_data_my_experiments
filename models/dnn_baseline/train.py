@@ -5,6 +5,12 @@ Trains the Deep Neural Network (DNN) baseline.
 """
 
 import os
+os.environ.setdefault("MASTER_ADDR", "localhost")
+os.environ.setdefault("MASTER_PORT", "12355")
+os.environ.setdefault("WORLD_SIZE", "1")
+os.environ.setdefault("RANK", "0")
+os.environ.setdefault("NCCL_IB_DISABLE", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 import numpy as np
 import torch
 import torch.nn as nn
