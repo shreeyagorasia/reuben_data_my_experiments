@@ -17,7 +17,7 @@ import torch
 from common.data_utils import load_data, build_feature_arrays, split_age_column
 from common.metrics import reuben_metrics
 from model import PINN
-from plots import plot_spatial_error, plot_spatial_signed_error
+from plots import plot_spatial_error, plot_spatial_signed_error, plot_training_curve
 
 
 def main():
@@ -47,6 +47,7 @@ def main():
     scaler_age = checkpoint["scaler_age"]
     scaler_y = checkpoint["scaler_y"]
     other_idxs = checkpoint["other_idxs"]
+    history = checkpoint.get("history")
     saved_metrics = checkpoint.get("final_metrics")
 
     print(f"Loaded checkpoint from {ckpt_path}")
@@ -106,6 +107,19 @@ def main():
     plot_spatial_signed_error(X_coords, Y_coords, y_test, y_pred, 
                        title="(g) PINN Baseline (Common)",
                        output_dir=config.OUTPUT_DIR)
+
+    # 7. Plot training curve from saved history
+    # ------------------------------------------------------------
+    if history and all(k in history for k in ["epochs", "train_loss", "val_loss"]):
+        print("\nRe-plotting training curve from checkpoint history...")
+        plot_training_curve(
+            history["epochs"],
+            history["train_loss"],
+            history["val_loss"],
+            config.OUTPUT_DIR
+        )
+    else:
+        print("\n(No 'history' found in checkpoint -- skipping training curve plot.)")
 
 if __name__ == "__main__":
     main()
