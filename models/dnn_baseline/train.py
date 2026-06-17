@@ -16,7 +16,6 @@ import config
 from common.data_utils import load_data, build_feature_arrays, train_val_split, get_kfold_splits
 from common.metrics import reuben_metrics
 from model import DNN
-from plots import plot_training_curve, plot_spatial_error, plot_spatial_signed_error
 
 def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, device, run_name=""):
     """Handles scaling, splitting, and training for a single run."""
@@ -190,13 +189,6 @@ def main():
     )
     for k, v in metrics_t2.items():
         all_results[f"Table4.2_{k}"] = v
-
-    # Plots and checkpoint are now based on the Table 4.1 experiment.
-    plot_training_curve(ep_log_t1, tr_hist_t1, val_hist_t1, config.OUTPUT_DIR)
-    plot_spatial_error(X_coords_purged, Y_coords_purged, y_test_purged, y_pred_t1,
-                       "(f) DNN Temporal Error (Common)", config.OUTPUT_DIR)
-    plot_spatial_signed_error(X_coords_purged, Y_coords_purged, y_test_purged, y_pred_t1,
-                       "(f) DNN Temporal Error (Common)", config.OUTPUT_DIR)
 
     # Checkpoint is now based on Table 4.1
     checkpoint = {

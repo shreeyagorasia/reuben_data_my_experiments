@@ -28,7 +28,6 @@ from scipy.optimize import curve_fit
 from common.data_utils import load_data, get_kfold_splits
 from common.metrics import reuben_metrics
 from model import chapman_richards
-from plots import plot_cr_fit, plot_spatial_error, plot_spatial_signed_error
 
 def run_cr(df_train, df_test, run_name=""):
     """Fits the CR model to the training set and evaluates it on the test set."""
@@ -108,14 +107,6 @@ def main():
     pd.DataFrame(list(all_results.items()), columns=["Metric", "Value"]).to_csv(os.path.join(config.OUTPUT_DIR, "results.csv"), index=False)
     print(f"Saved combined metrics to results.csv")
 
-    # Use the Table 4.2 params to generate the comprehensive visual map
-    plot_cr_fit(df12_unseen[config.AGE_COL].values, df12_unseen[config.TARGET_COL].values, 
-                params_t2["y_max"], params_t2["k"], params_t2["p"], config.OUTPUT_DIR)
-
-    X_coords = df23_unseen["X"].values
-    Y_coords = df23_unseen["Y"].values
-    plot_spatial_error(X_coords, Y_coords, df23_unseen[config.TARGET_COL].values, y_pred_t2, "(c) Chapman-Richards", config.OUTPUT_DIR)
-    plot_spatial_signed_error(X_coords, Y_coords, df23_unseen[config.TARGET_COL].values, y_pred_t2, "(c) Chapman-Richards", config.OUTPUT_DIR)
 
 
 if __name__ == "__main__":

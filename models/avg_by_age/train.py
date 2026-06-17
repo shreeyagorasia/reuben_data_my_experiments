@@ -13,7 +13,6 @@ import pandas as pd
 import config
 from common.data_utils import load_data, get_kfold_splits
 from common.metrics import reuben_metrics
-from plots import plot_spatial_error, plot_spatial_signed_error
 
 def run_avg_by_age(df_train, df_test, run_name=""):
     """Runs the Space-for-Time cohort lookup logic for a given train/test split."""
@@ -82,12 +81,7 @@ def main():
         all_results[f"Table4.2_{k}"] = v
         
     pd.DataFrame(list(all_results.items()), columns=["Metric", "Value"]).to_csv(os.path.join(config.OUTPUT_DIR, "results.csv"), index=False)
-            
-    # Spatial map for the comprehensive "unseen" experiment
-    X_coords = df23_unseen["X"].values
-    Y_coords = df23_unseen["Y"].values
-    plot_spatial_error(X_coords, Y_coords, df23_unseen[config.TARGET_COL].values, y_pred_unseen, "(b) AvgByAge Baseline", config.OUTPUT_DIR)
-    plot_spatial_signed_error(X_coords, Y_coords, df23_unseen[config.TARGET_COL].values, y_pred_unseen, "(b) AvgByAge Baseline", config.OUTPUT_DIR)
+    print(f"Saved combined metrics to results.csv")
 
 if __name__ == "__main__":
     main()

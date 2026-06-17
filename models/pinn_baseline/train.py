@@ -49,7 +49,6 @@ from common.data_utils import (
 )
 from common.metrics import reuben_metrics
 from model import PINN, pinn_loss
-from plots import plot_training_curve, plot_spatial_error, plot_spatial_signed_error
 
 def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, cr_params, device, run_name=""):
     """Handles scaling, splitting, and training the PINN for a single given subset of data."""
@@ -352,16 +351,6 @@ def main():
         ckpt_path = os.path.join(config.OUTPUT_DIR, "checkpoint.pt")
         torch.save(checkpoint, ckpt_path)
         print(f"\nSaved checkpoint to {ckpt_path}")
-
-        plot_training_curve(e["ep_log"], e["tr_hist"], e["val_hist"], config.OUTPUT_DIR)
-        plot_spatial_error(
-            e["X_coords"], e["Y_coords"], e["y_te"], e["y_pred"],
-            "(g) PINN Baseline (Common)", config.OUTPUT_DIR
-        )
-        plot_spatial_signed_error(
-            e["X_coords"], e["Y_coords"], e["y_te"], e["y_pred"],
-            "(g) PINN Baseline (Common)", config.OUTPUT_DIR
-        )
 
         config_used = {
             "hidden_size": config.HIDDEN_SIZE,

@@ -17,7 +17,7 @@ import torch
 from common.data_utils import load_data, build_feature_arrays
 from common.metrics import reuben_metrics
 from model import DNN
-from plots import plot_spatial_error, plot_spatial_signed_error
+from plots import plot_training_curve, plot_spatial_error, plot_spatial_signed_error
 
 
 def main():
@@ -90,12 +90,20 @@ def main():
     else:
         print("\n(No 'final_metrics' found in checkpoint -- skipping saved-vs-fresh comparison.)")
 
-    # 6. Plot spatial error maps
+    # 6. Plot training curve from saved history
     # ------------------------------------------------------------
-    plot_spatial_error(X_coords, Y_coords, y_test, y_pred, 
+    history = checkpoint.get("history")
+    if history and all(k in history for k in ["epochs", "train_loss", "val_loss"]):
+        plot_training_curve(history["epochs"], history["train_loss"], history["val_loss"], config.OUTPUT_DIR)
+    else:
+        print("\n(No history found in checkpoint -- skipping training curve.)")
+
+    # 7. Plot spatial error maps
+    # ------------------------------------------------------------
+    plot_spatial_error(X_coords, Y_coords, y_test, y_pred,
                        title="(f) DNN Temporal Error (Common)",
                        output_dir=config.OUTPUT_DIR)
-    plot_spatial_signed_error(X_coords, Y_coords, y_test, y_pred, 
+    plot_spatial_signed_error(X_coords, Y_coords, y_test, y_pred,
                        title="(f) DNN Temporal Error (Common)",
                        output_dir=config.OUTPUT_DIR)
 
