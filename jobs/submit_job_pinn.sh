@@ -9,7 +9,7 @@
 #SBATCH --mem=8G
 
 # --- How to run ---------------------------------------------------
-# sbatch --job-name=pinn jobs/submit_job.sh 
+# sbatch --job-name=pinn jobs/submit_job_pinn.sh 
 
 # === SET THE TABLE YOU WANT TO REPLICATE HERE ===
 # Options: "4.1", "4.2", "4.3", "4.4", or "all"
