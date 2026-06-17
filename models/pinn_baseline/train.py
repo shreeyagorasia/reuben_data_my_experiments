@@ -53,31 +53,45 @@ from plots import plot_training_curve, plot_spatial_error, plot_spatial_signed_e
 
 def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, cr_params, device, run_name=""):
     """Handles scaling, splitting, and training the PINN for a single given subset of data."""
+    # 1. FEATURE SPLITTING & SCALING:
+    # Separate the 'AGE' column from the other features. This is essential for the PINN
+    # because we need to compute the derivative of the output with respect to AGE.
     (X_tr_o, X_tr_a, X_te_o, X_te_a, age_idx, other_idxs) = split_age_column(X_tr_full, X_te_full)
+    # Create separate scalers for other features, age, and the target.
+    # They are all fit on the 2012 training data only to prevent leakage.
     scaler_Xo, scaler_age, scaler_y = make_scalers(X_tr_o, X_tr_a, y_tr_full)
 
+    # These scaling factors are needed for the chain rule in the physics loss calculation.
     sigma_y = float(scaler_y.scale_[0])
     sigma_age = float(scaler_age.scale_[0])
     age_mean = float(scaler_age.mean_[0])
 
+    # 2. VALIDATION SPLIT: Create an internal validation set for early stopping.
     tr_idx, val_idx = train_val_split(len(X_tr_full), val_fraction=config.VAL_SPLIT)
 
+    # 3. TENSOR CONVERSION: Create scaled tensors for train and validation sets.
+    # Note the separate tensors for 'other' features (Xtr_o) and 'age' (Xtr_a).
     Xtr_o, Xtr_a, ytr = to_tensors(tr_idx, X_tr_o, X_tr_a, y_tr_full, scaler_Xo, scaler_age, scaler_y)
     Xval_o, Xval_a, yval = to_tensors(val_idx, X_tr_o, X_tr_a, y_tr_full, scaler_Xo, scaler_age, scaler_y)
 
+    # Move validation tensors to the GPU.
     Xtr_o, Xtr_a, ytr = Xtr_o.to(device), Xtr_a.to(device), ytr.to(device)
     Xval_o, Xval_a, yval = Xval_o.to(device), Xval_a.to(device), yval.to(device)
 
+    # Scale and move the final test set tensors to the GPU.
     Xte_o = torch.tensor(scaler_Xo.transform(X_te_o), dtype=torch.float32).to(device)
     Xte_a = torch.tensor(scaler_age.transform(X_te_a), dtype=torch.float32).to(device)
 
+    # DataLoader will handle batching and shuffling of the three training tensors.
     loader = DataLoader(TensorDataset(Xtr_o, Xtr_a, ytr), batch_size=config.BATCH_SIZE, shuffle=True)
 
+    # 4. MODEL SETUP
     pinn = PINN(n_other=len(other_idxs)).to(device)
     optimiser = torch.optim.Adam(pinn.parameters(), lr=config.LEARNING_RATE)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode="min", factor=0.8, patience=10)
     mse_fn = nn.MSELoss()
 
+    # 5. TRAINING LOOP
     train_hist, val_hist, epoch_log = [], [], []
     best_val = float("inf")
     patience_ctr = 0
@@ -94,14 +108,19 @@ def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, cr_params, device, 
             Xb_o, Xb_a, yb = Xb_o.to(device), Xb_a.to(device), yb.to(device)
             optimiser.zero_grad()
 
-            # AGE needs requires_grad=True so autograd can calculate the physics loss derivative
+            # THIS IS THE KEY FOR THE PHYSICS LOSS:
+            # The age tensor for the batch (`Xb_a`) must have `requires_grad=True`.
+            # This tells PyTorch to track operations on it for automatic differentiation.
             t_age = Xb_a.clone().requires_grad_(True)
             pred = pinn(Xb_o, t_age)
 
+            # Calculate the custom PINN loss, which returns both the data and physics components.
             data_loss, phys_loss = pinn_loss(
                 pred, t_age, yb, mse_fn, cr_params, sigma_y, sigma_age, age_mean
             )
+            # L1 regularization term
             l1 = sum(p.abs().sum() for p in pinn.parameters())
+            # The final loss is a weighted sum of the three components.
             loss = data_loss + config.LAMBDA_PH * phys_loss + config.LAMBDA_L1 * l1
 
             loss.backward()
@@ -112,10 +131,13 @@ def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, cr_params, device, 
         avg_train = running / n_batches
         pinn.eval()
         with torch.no_grad():
+            # Validation loss is just standard MSE on the validation set.
+            # The physics loss is only used for training the model.
             val_loss = mse_fn(pinn(Xval_o, Xval_a), yval).item()
 
         scheduler.step(val_loss)
 
+        # Early stopping logic
         if val_loss < best_val - 1e-5:
             best_val = val_loss
             patience_ctr = 0
@@ -133,11 +155,14 @@ def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, cr_params, device, 
     if not epoch_log or epoch_log[-1] != (epoch + 1):
         epoch_log.append(epoch + 1); train_hist.append(avg_train); val_hist.append(val_loss)
 
+    # 6. FINAL EVALUATION
     pinn.eval()
     with torch.no_grad():
+        # Get scaled predictions and inverse_transform them back to metres.
         y_pred_scaled = pinn(Xte_o, Xte_a).cpu().numpy().reshape(-1, 1)
         y_pred = scaler_y.inverse_transform(y_pred_scaled).ravel()
 
+    # Calculate final performance metrics.
     metrics = reuben_metrics(y_te_full, y_pred, label=run_name if run_name else "CV Fold")
 
     return metrics, epoch_log, train_hist, val_hist, y_pred, pinn, optimiser, scaler_Xo, scaler_age, scaler_y, other_idxs, age_idx
@@ -163,11 +188,25 @@ def load_cr_params():
 def run_table_4_1(cr_params_purged, device):
     print("\n\n--- Loading PURGED data for Table 4.1 ---")
     df12, df23, _ = load_data(config.DATA_PATH_PURGED)
-    X_tr, X_te, y_tr, y_te, _, _ = build_feature_arrays(df12, df23)
+    X_tr, X_te, y_tr, y_te, X_coords, Y_coords = build_feature_arrays(df12, df23)
 
     print("\n--- Running Experiment for Table 4.1: Temporal (Common Plots) ---")
-    metrics, *_ = run_training(X_tr, y_tr, X_te, y_te, cr_params_purged, device, "Temporal (Table 4.1)")
-    return {f"Table4.1_{k}": v for k, v in metrics.items()}
+    (metrics, ep_log, tr_hist, val_hist, y_pred, pinn, optimiser,
+     scaler_Xo, scaler_age, scaler_y, other_idxs, age_idx) = run_training(
+        X_tr, y_tr, X_te, y_te, cr_params_purged, device, "Temporal (Table 4.1)"
+    )
+
+    table_results = {f"Table4.1_{k}": v for k, v in metrics.items()}
+    extras = {
+        "metrics": metrics,
+        "ep_log": ep_log, "tr_hist": tr_hist, "val_hist": val_hist,
+        "y_pred": y_pred, "y_te": y_te, "pinn": pinn, "optimiser": optimiser,
+        "scaler_Xo": scaler_Xo, "scaler_age": scaler_age, "scaler_y": scaler_y,
+        "other_idxs": other_idxs, "age_idx": age_idx,
+        "X_coords": X_coords, "Y_coords": Y_coords,
+        "cr_params": cr_params_purged,
+    }
+    return table_results, extras
 
 
 def run_table_4_3(cr_params_purged, device):
@@ -263,12 +302,14 @@ def main():
     cr_params_purged, cr_params_unseen = load_cr_params()
 
     results = load_existing_results()
+    table_4_1_extras = None
     table_4_2_extras = None
     cv_test_plot_ids_4_3 = None
     cv_test_plot_ids_4_4 = None
 
     if "4.1" in tables:
-        results.update(run_table_4_1(cr_params_purged, device))
+        t1_results, table_4_1_extras = run_table_4_1(cr_params_purged, device)
+        results.update(t1_results)
     if "4.3" in tables:
         t3_results, cv_test_plot_ids_4_3 = run_table_4_3(cr_params_purged, device)
         results.update(t3_results)
@@ -282,11 +323,11 @@ def main():
     save_results(results)
 
     # ------------------------------------------------------------
-    # Checkpoint / plots / config snapshot are only based on Table 4.2
-    # (the "primary" experiment), so only produce them when it was run.
+    # Checkpoint / plots / config snapshot are now ONLY based on Table 4.1.
+    # They will only be generated if that experiment was run.
     # ------------------------------------------------------------
-    if table_4_2_extras is not None:
-        e = table_4_2_extras
+    if table_4_1_extras is not None:
+        e = table_4_1_extras
         checkpoint = {
             "model_state": e["pinn"].state_dict(),
             "optimizer_state": e["optimiser"].state_dict(),
@@ -315,11 +356,11 @@ def main():
         plot_training_curve(e["ep_log"], e["tr_hist"], e["val_hist"], config.OUTPUT_DIR)
         plot_spatial_error(
             e["X_coords"], e["Y_coords"], e["y_te"], e["y_pred"],
-            "(g) PINN Baseline", config.OUTPUT_DIR
+            "(g) PINN Baseline (Common)", config.OUTPUT_DIR
         )
         plot_spatial_signed_error(
             e["X_coords"], e["Y_coords"], e["y_te"], e["y_pred"],
-            "(g) PINN Baseline", config.OUTPUT_DIR
+            "(g) PINN Baseline (Common)", config.OUTPUT_DIR
         )
 
         config_used = {

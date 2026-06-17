@@ -20,25 +20,34 @@ from plots import plot_training_curve, plot_spatial_error, plot_spatial_signed_e
 
 def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, device, run_name=""):
     """Handles scaling, splitting, and training for a single run."""
+    # 1. SCALING: Fit scalers on the TRAINING data (2012) ONLY.
+    # This prevents data leakage from the test set's statistics (mean, std).
     scaler_X = StandardScaler().fit(X_tr_full)
     scaler_y = StandardScaler().fit(y_tr_full.reshape(-1, 1))
     
-    # Create an internal validation set for Early Stopping
+    # 2. VALIDATION SPLIT: Create an internal validation set from the training data.
+    # This is used for early stopping to prevent overfitting.
     tr_idx, val_idx = train_val_split(len(X_tr_full), val_fraction=config.VAL_SPLIT)
     
+    # 3. TENSOR CONVERSION: Scale the data and convert to PyTorch tensors.
+    # Training data is kept on the CPU and moved to the GPU in batches by the DataLoader.
     Xtr_t = torch.tensor(scaler_X.transform(X_tr_full[tr_idx]), dtype=torch.float32)
     ytr_t = torch.tensor(scaler_y.transform(y_tr_full[tr_idx].reshape(-1, 1)).ravel(), dtype=torch.float32)
+    # Validation and Test data are moved to the GPU immediately since they are used all at once.
     Xval_t = torch.tensor(scaler_X.transform(X_tr_full[val_idx]), dtype=torch.float32).to(device)
     yval_t = torch.tensor(scaler_y.transform(y_tr_full[val_idx].reshape(-1, 1)).ravel(), dtype=torch.float32).to(device)
     Xte = torch.tensor(scaler_X.transform(X_te_full), dtype=torch.float32).to(device)
     
+    # The DataLoader handles batching, shuffling, and moving data to the GPU.
     train_loader = DataLoader(TensorDataset(Xtr_t, ytr_t), batch_size=config.BATCH_SIZE, shuffle=True)
     
+    # 4. MODEL SETUP: Instantiate the model, optimizer, scheduler, and loss function.
     dnn = DNN(n_features=X_tr_full.shape[1]).to(device)
     optimiser = torch.optim.Adam(dnn.parameters(), lr=config.LEARNING_RATE)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.8, patience=10)
     loss_fn = nn.MSELoss()
     
+    # 5. TRAINING LOOP
     train_hist, val_hist, epoch_log = [], [], []
     best_val = float('inf')
     patience_ctr = 0
@@ -47,25 +56,39 @@ def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, device, run_name=""
     print("-" * 38)
 
     for epoch in range(config.EPOCHS):
+        # Set model to training mode
         dnn.train()
         running, batch_count = 0.0, 0
         for Xb, yb in train_loader:
+            # Move batch to the GPU
             Xb, yb = Xb.to(device), yb.to(device)
+            # Reset gradients from previous batch
             optimiser.zero_grad()
+            # Forward pass: get predictions
             pred = dnn(Xb)
+            # L1 regularization term: penalizes large weights to prevent overfitting
             l1 = sum(p.abs().sum() for p in dnn.parameters())
+            # Calculate loss: standard MSE + L1 penalty
             loss = loss_fn(pred, yb) + config.LAMBDA_L1 * l1
+            # Backward pass: compute gradients
             loss.backward()
+            # Update weights
             optimiser.step()
+            # Accumulate loss for logging
             running += loss.item()
             batch_count += 1
             
         avg_train = running / batch_count
+        # After each epoch, evaluate on the validation set
         dnn.eval()
         with torch.no_grad():
             val_loss = loss_fn(dnn(Xval_t), yval_t).item()
             
+        # Adjust learning rate based on validation loss
         scheduler.step(val_loss)
+
+        # Early stopping logic: if validation loss doesn't improve for a
+        # number of epochs (patience), stop training.
         if val_loss < best_val - 1e-5:
             best_val = val_loss
             patience_ctr = 0
@@ -83,13 +106,16 @@ def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, device, run_name=""
     if not epoch_log:
         epoch_log.append(epoch + 1); train_hist.append(avg_train); val_hist.append(val_loss)
         
+    # 6. FINAL EVALUATION: Use the trained model to predict on the test set.
     dnn.eval()
     with torch.no_grad():
+        # Get scaled predictions and then inverse_transform them back to original units (metres).
         y_pred = scaler_y.inverse_transform(dnn(Xte).cpu().numpy().reshape(-1, 1)).ravel()
     
     # We only print the metrics output if it's the main temporal run
     if run_name:
         print(f"\n--- {run_name} ---")
+    # Calculate final performance metrics (MAE, R², etc.)
     metrics = reuben_metrics(y_te_full, y_pred, label=run_name)
 
     return metrics, epoch_log, train_hist, val_hist, y_pred, dnn, optimiser, scaler_X, scaler_y
@@ -108,13 +134,13 @@ def main():
     # --- Experiments using PURGED data (Tables 4.1, 4.3, 4.4) ---
     print("\n\n--- Loading PURGED data for Tables 4.1, 4.3, 4.4 ---")
     df12_purged, df23_purged, _ = load_data(config.DATA_PATH_PURGED)
-    X_train_purged, X_test_purged, y_train_purged, y_test_purged, _, _ = build_feature_arrays(
+    X_train_purged, X_test_purged, y_train_purged, y_test_purged, X_coords_purged, Y_coords_purged = build_feature_arrays(
         df12_purged, df23_purged
     )
 
     # --- Experiment for Table 4.1 (Temporal, Common Plots) ---
     print("\n--- Running Experiment for Table 4.1: Temporal (Common Plots) ---")
-    metrics_t1, *_ = run_training(
+    metrics_t1, ep_log_t1, tr_hist_t1, val_hist_t1, y_pred_t1, dnn_t1, optimiser_t1, scaler_X_t1, scaler_y_t1 = run_training(
         X_train_purged, y_train_purged, X_test_purged, y_test_purged, device, "Temporal (Table 4.1)"
     )
     for k, v in metrics_t1.items():
@@ -165,26 +191,26 @@ def main():
     for k, v in metrics_t2.items():
         all_results[f"Table4.2_{k}"] = v
 
-    # We only save plots for the "unseen" temporal experiment, as it's the most comprehensive
-    plot_training_curve(ep_log, tr_hist, val_hist, config.OUTPUT_DIR)
-    plot_spatial_error(X_coords_unseen, Y_coords_unseen, y_test_unseen, y_pred_unseen,
-                       "(f) DNN Temporal Error (Unseen)", config.OUTPUT_DIR)
-    plot_spatial_signed_error(X_coords_unseen, Y_coords_unseen, y_test_unseen, y_pred_unseen,
-                       "(f) DNN Temporal Error (Unseen)", config.OUTPUT_DIR)
+    # Plots and checkpoint are now based on the Table 4.1 experiment.
+    plot_training_curve(ep_log_t1, tr_hist_t1, val_hist_t1, config.OUTPUT_DIR)
+    plot_spatial_error(X_coords_purged, Y_coords_purged, y_test_purged, y_pred_t1,
+                       "(f) DNN Temporal Error (Common)", config.OUTPUT_DIR)
+    plot_spatial_signed_error(X_coords_purged, Y_coords_purged, y_test_purged, y_pred_t1,
+                       "(f) DNN Temporal Error (Common)", config.OUTPUT_DIR)
 
-    # Checkpoint (model + scalers + history) is based on Table 4.2 (the "primary" experiment)
+    # Checkpoint is now based on Table 4.1
     checkpoint = {
-        "model_state": dnn_t2.state_dict(),
-        "optimizer_state": optimiser_t2.state_dict(),
+        "model_state": dnn_t1.state_dict(),
+        "optimizer_state": optimiser_t1.state_dict(),
         "history": {
-            "train_loss": tr_hist,
-            "val_loss": val_hist,
-            "epochs": ep_log,
+            "train_loss": tr_hist_t1,
+            "val_loss": val_hist_t1,
+            "epochs": ep_log_t1,
         },
         "feature_list": config.FEATURES,
-        "scaler_X": scaler_X_t2,
-        "scaler_y": scaler_y_t2,
-        "final_metrics": metrics_t2,
+        "scaler_X": scaler_X_t1,
+        "scaler_y": scaler_y_t1,
+        "final_metrics": metrics_t1,
         "cv_test_plot_ids": {
             "Table4.3": cv43_test_plot_ids,
             "Table4.4": cv44_test_plot_ids,

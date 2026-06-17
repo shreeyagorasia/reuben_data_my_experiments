@@ -27,7 +27,8 @@ def main():
 
     # 1. Load data and rebuild the test features
     # ------------------------------------------------------------
-    df12, df23, common_ids = load_data(config.DATA_PATH_UNSEEN)
+    # Load PURGED data to match the new checkpointing strategy.
+    df12, df23, common_ids = load_data(config.DATA_PATH_PURGED)
     X_train, X_test, y_train, y_test, X_coords, Y_coords = build_feature_arrays(df12, df23)
 
     # 2. Load the checkpoint
@@ -91,11 +92,11 @@ def main():
 
     # 6. Plot spatial error maps
     # ------------------------------------------------------------
-    plot_spatial_error(X_coords, Y_coords, y_test, y_pred,
-                       title="(f) DNN Temporal Error (Unseen)",
+    plot_spatial_error(X_coords, Y_coords, y_test, y_pred, 
+                       title="(f) DNN Temporal Error (Common)",
                        output_dir=config.OUTPUT_DIR)
-    plot_spatial_signed_error(X_coords, Y_coords, y_test, y_pred,
-                       title="(f) DNN Temporal Error (Unseen)",
+    plot_spatial_signed_error(X_coords, Y_coords, y_test, y_pred, 
+                       title="(f) DNN Temporal Error (Common)",
                        output_dir=config.OUTPUT_DIR)
 
 if __name__ == "__main__":

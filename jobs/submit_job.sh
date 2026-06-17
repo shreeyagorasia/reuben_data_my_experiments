@@ -8,6 +8,10 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mem=8G
 
+
+# --- How to run ---------------------------------------------------
+# sbatch --job-name=chapman_richards jobs/submit_job.sh chapman_richards
+
 echo "--- SLURM JOB START ---"
 echo "Model requested: $1"
 echo "Current directory is: $(pwd)"

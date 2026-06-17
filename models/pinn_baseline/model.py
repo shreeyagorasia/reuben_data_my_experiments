@@ -43,7 +43,8 @@ class PINN(nn.Module):
 
     def forward(self, x_other, t_age):
         # Concatenate the "other" features with AGE before feeding
-        # them into the network.
+        # them into the network. `dim=1` concatenates along the feature axis.
+        # Input shape becomes (batch_size, n_other + 1).
         x = torch.cat([x_other, t_age], dim=1)
         return self.net(x).squeeze()
 
@@ -87,9 +88,22 @@ def pinn_loss(pred, t_scaled, y_true, mse_fn, cr_params, sigma_y, sigma_age, age
     -------
     data_loss, physics_loss  (both are scalar tensors)
     """
+    # --------------------------------------------------------------------------
+    # 1. DATA LOSS (L_data): Standard Mean Squared Error
+    # This is the "usual" machine learning loss term that measures how far the
+    # model's height predictions (pred) are from the true heights (y_true).
+    # --------------------------------------------------------------------------
     data_loss = mse_fn(pred, y_true)
 
-    # d(prediction)/d(AGE) in SCALED units, computed via autograd.
+    # --------------------------------------------------------------------------
+    # 2. PHYSICS LOSS (L_phys): Growth Rate Consistency
+    # This term encourages the model's predicted growth rate to match the
+    # analytical growth rate from the Chapman-Richards (CR) curve.
+    # --------------------------------------------------------------------------
+
+    # Step 2a: Compute the model's predicted growth rate using autograd.
+    # `torch.autograd.grad` calculates the derivative of `pred` with respect to `t_scaled`.
+    # This gives us d(Height_scaled) / d(Age_scaled).
     dy_dt_scaled = torch.autograd.grad(
         outputs=pred,
         inputs=t_scaled,
@@ -98,13 +112,17 @@ def pinn_loss(pred, t_scaled, y_true, mse_fn, cr_params, sigma_y, sigma_age, age
         retain_graph=True,
     )[0].squeeze()
 
-    # Chain rule: convert the scaled derivative back to real units
-    # (metres of height per year of age).
+    # Step 2b: Convert the scaled derivative back to real-world units (m/year) using the chain rule.
+    # dH/dt = (dH/dH_scaled) * (dH_scaled/dt_scaled) * (dt_scaled/dt)
+    #       = sigma_y * dy_dt_scaled * (1/sigma_age)
     dy_dt_unscaled = dy_dt_scaled * (sigma_y / sigma_age)
 
-    # Convert the scaled AGE values back to real years, so we can
-    # plug them into the Chapman-Richards derivative formula.
+    # Step 2c: Un-scale the age values from the batch back to real years.
+    # This is needed to calculate the target CR growth rate at the correct age.
     t_years = t_scaled.squeeze() * sigma_age + age_mean
 
+    # Step 2d: Calculate the final physics loss.
+    # This is the MSE between the model's predicted growth rate (from autograd)
+    # and the analytical CR growth rate at each plot's age.
     physics_loss = mse_fn(dy_dt_unscaled, cr_derivative(t_years, cr_params))
     return data_loss, physics_loss

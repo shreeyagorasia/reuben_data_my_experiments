@@ -8,6 +8,9 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mem=8G
 
+# --- How to run ---------------------------------------------------
+# sbatch --job-name=pinn jobs/submit_job.sh 
+
 # === SET THE TABLE YOU WANT TO REPLICATE HERE ===
 # Options: "4.1", "4.2", "4.3", "4.4", or "all"
 TABLE="4.1"
