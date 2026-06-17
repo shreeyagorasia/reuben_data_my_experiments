@@ -99,9 +99,9 @@ def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, device, run_name=""
                 print(f"    Early stopping at epoch {epoch + 1} - val_loss plateaued")
                 break
                 
-        if (epoch + 1) % 50 == 0:
+        if (epoch + 1) % 10 == 0:
             epoch_log.append(epoch + 1); train_hist.append(avg_train); val_hist.append(val_loss)
-            print(f"  {epoch + 1:>4}  |  {avg_train:>12.6f}  |  {val_loss:>12.6f}")
+            print(f"  {epoch + 1:>4}  |  {avg_train:>12.6f}  |  {val_loss:>12.6f}", flush=True)
 
     if not epoch_log:
         epoch_log.append(epoch + 1); train_hist.append(avg_train); val_hist.append(val_loss)

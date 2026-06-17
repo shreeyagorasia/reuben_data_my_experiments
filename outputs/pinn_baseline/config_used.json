@@ -4,7 +4,7 @@
   "lambda_l1": 1e-05,
   "epochs_max": 5,
   "epochs_run": 5,
-  "batch_size": 32,
+  "batch_size": 128,
   "learning_rate": 0.0001,
   "early_stop_patience": 50,
   "val_split": 0.33,

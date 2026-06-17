@@ -22,7 +22,7 @@ OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs", MODEL_NAME)
 
 HIDDEN_SIZE = 128
 LAMBDA_L1 = 1e-5
-EPOCHS = 1000 #CHANGE from 5 to 1000 for real runs
+EPOCHS = 5 #CHANGE from 5 to 1000 for real runs
 BATCH_SIZE = 512
 LEARNING_RATE = 1e-4
 EARLY_STOP_PATIENCE = 50
