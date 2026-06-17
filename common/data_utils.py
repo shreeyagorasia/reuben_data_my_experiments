@@ -14,7 +14,6 @@ The overall idea:
 import os
 import numpy as np
 import pandas as pd
-import torch
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, KFold
 
@@ -170,6 +169,7 @@ def to_tensors(idx_arr, X_other, X_age, y, scaler_Xo, scaler_age, scaler_y):
 
     Used to build the train and validation tensors from the 2012 data.
     """
+    import torch
     Xo = torch.tensor(scaler_Xo.transform(X_other[idx_arr]), dtype=torch.float32)
     Xa = torch.tensor(scaler_age.transform(X_age[idx_arr]), dtype=torch.float32)
     y_scaled = scaler_y.transform(y[idx_arr].reshape(-1, 1)).ravel()
