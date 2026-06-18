@@ -2,8 +2,8 @@
   "model_name": "avg_by_age",
   "method": "AvgByAge nearest-age lookup",
   "data_paths": {
-    "purged": "/home/s2887183/reuben_data_my_experiments/data/Aber_1223_conjoin_plot_purged_expanded_encoded.csv",
-    "unseen": "/home/s2887183/reuben_data_my_experiments/data/Aber_1223_conjoin_expanded_encoded_duplicate_plots_removed.csv"
+    "purged": "/Users/shreeyagorasia/UoE_Docs/Dissertation/reuben_diss/Reuben_data_my_experiments/data/Aber_1223_conjoin_plot_purged_expanded_encoded.csv",
+    "unseen": "/Users/shreeyagorasia/UoE_Docs/Dissertation/reuben_diss/Reuben_data_my_experiments/data/Aber_1223_conjoin_expanded_encoded_duplicate_plots_removed.csv"
   },
   "features_used": [
     "AGE"
@@ -28,11 +28,11 @@
     "unique_2023_rows_without_exact_age_match": 144,
     "unique_2023_fraction_without_exact_age_match": 0.010410641989589358,
     "metrics": {
-      "mae": 5.316973336959561,
-      "mse": 42.685102724437904,
+      "mae": 5.31697333695956,
+      "mse": 42.68510272443791,
       "r2": 0.2564649581087154,
-      "mre": 0.22138262334372974,
-      "acc": 77.86173766562703
+      "mre": 0.2213826233437298,
+      "acc": 77.86173766562702
     }
   },
   "output_files": {
