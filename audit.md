@@ -2,6 +2,34 @@
 
 Audit date: 2026-06-18
 
+Current status: **AMBER until outputs are regenerated**. The framework is usable as a comparison of intentionally different model families, not as a same-feature architecture-only ablation. The current data populations are consistent across models within each table, Table 4.2's full unseen-CSV protocol is intentional, and spatial plotting has been centralized with metadata checks. The remaining practical requirement is to rerun/regenerate outputs so `results.csv`, map PNGs, map JSON sidecars, and configs on disk match the corrected code.
+
+## Executive Summary
+
+The strict claim "performance differences are due solely to model architecture" is not the right framing for this codebase. A more accurate claim is:
+
+> Within each table, the scripts evaluate each model on the same target rows and metric definitions, but the comparison is between intentionally different modelling pipelines: age-only empirical/parametric baselines versus full-feature neural models.
+
+Key current conclusions:
+
+- Table 4.1 is the primary temporal common-plot experiment: 27,660 2012 training rows and 27,660 paired 2023 test rows.
+- Table 4.2 is intentionally the full unseen-CSV temporal experiment: 31,147 post-purge 2012 training rows and 41,492 post-purge 2023 test rows, including 13,832 2023-only plots in the test set.
+- AvgByAge and Chapman-Richards intentionally use `AGE` only; DNN and PINN intentionally use the full 18-feature set.
+- PINN's Chapman-Richards prior is an intentional fixed-prior design choice, not a current blocker.
+- Spatial plotting now delegates to `common/spatial_plots.py`; unsigned maps use capped relative error and signed maps use signed relative error.
+- Combined spatial comparison scripts now require sidecar JSON metadata and refuse mixed table/data/scale artifacts.
+- Existing plot PNGs may be stale until regenerated with the current code.
+
+Minimum remaining actions before final reporting:
+
+1. Regenerate Table 4.1 spatial maps and metadata for all four models.
+2. Run the combined spatial comparison scripts only after metadata checks pass.
+3. Document Table 4.2's intended full unseen-CSV protocol in the dissertation methods.
+4. Document feature/training differences as intentional differences between model families.
+5. Update stale README text before final submission.
+
+## Detailed Forensic Audit
+
 I did two passes over the repository. Pass 1 read the shared configuration/utilities, every model folder, the job scripts, the comparison script, README, requirements, and saved text/CSV outputs. Pass 2 re-read the implementation with targeted checks for cross-file inconsistencies: data paths, Table 4.2 handling, common-plot logic, feature lists, scalers, metric formulas, CR parameters, checkpoint behavior, and silent filtering. Binary artifacts (`.pt`, `.png`) were not semantically inspected beyond their presence and surrounding code paths.
 
 Important environment note: the local `python3` in this shell does not have `pandas`, `scipy`, `sklearn`, or `torch` installed, and there is no local `venv/` in the repo. I therefore computed dataset counts directly from the CSVs with Python's standard `csv` module and used existing saved output CSV/JSON files where dependency-based model reruns were not possible.
@@ -80,9 +108,9 @@ Actual CSV/counts after `load_data()` logic:
 - 2012 IDs not common after purge: 3,487
 - 2023 IDs not common after purge: 13,832
 
-This is the most important divergence. `load_data()` computes `common_ids`, but all four Table 4.2 scripts ignore it. Then `build_feature_arrays()` takes all rows from `df12` and `df23` (`common/data_utils.py:79-90`). So Table 4.2 trains on all post-purge 2012 rows in the unseen CSV and evaluates on all post-purge 2023 rows in the unseen CSV, not on only common plots and not on a clearly isolated unseen test split built from the purged/common Table 4.1 data.
+This is the intended Table 4.2 protocol. `load_data()` computes `common_ids`, but Table 4.2 trains on all post-purge 2012 rows in the unseen CSV and evaluates on all post-purge 2023 rows in the unseen CSV. The test set therefore intentionally includes 13,832 2023-only plots.
 
-That exact behavior explains why Table 4.2 can look superficially correct while using a structurally different data population from Table 4.1. The exact divergence lines are the Table 4.2 `load_data(config.DATA_PATH_UNSEEN)` calls above, plus `load_data()` returning full frames at `common/data_utils.py:61`, plus `build_feature_arrays()` using full frames at `common/data_utils.py:79-90`.
+The important documentation point is that Table 4.2 is not "Table 4.1 on a held-out common-plot subset." It is the full unseen-CSV temporal experiment. The loader comments have been updated to make this explicit so this should not be treated as a future bug.
 
 ### Table 4.3: 3-fold CV within 2012
 
@@ -441,7 +469,7 @@ Metric definitions in `common/metrics.py:19-25`:
 
 This matches the epsilon-stabilized denominator and `Acc = (1-MRE)*100` definition. It is shared by all training/evaluation code, so the formulas are consistent across the four tables.
 
-Plotting functions recompute display MAE/Acc locally, not through `reuben_metrics()`. They use `abs_err.mean()` and `(1 - mean(abs_err / (y_test + 1e-8))) * 100`. Since TOP_HEIGHT is positive in this dataset, that is effectively the same as the shared metric, but it does not use `abs(y_test)` in the denominator.
+Resolved update: spatial plotting now delegates to `common/spatial_plots.py`, and plot titles use the shared `reuben_metrics()` function. Unsigned spatial maps use capped relative error, while signed spatial maps use signed relative error.
 
 ## 7. Per-Table Summary
 
@@ -451,7 +479,7 @@ Table 4.1 is the temporal common-plot experiment. It trains on the purged CSV's 
 
 ### Table 4.2
 
-Table 4.2 is labeled as temporal "unseen plots", but the current implementation is structurally different from Table 4.1 in two ways. First, every model switches from `DATA_PATH_PURGED` to `DATA_PATH_UNSEEN`: AvgByAge at `models/avg_by_age/train.py:76-79`, CR at `models/chapman_richards/train.py:90-94`, DNN at `models/dnn_baseline/train.py:180-188`, and PINN at `models/pinn_baseline/train.py:245-253`. Second, `load_data()` computes common IDs but returns the full post-negative-growth `df12`/`df23` frames, and the scripts ignore the returned `common_ids`. On the unseen CSV this leaves 31,147 2012 train rows and 41,492 2023 test rows, of which only 27,660 are common between years. That means Table 4.2 is not simply "Table 4.1 but on a held-out common-plot subset"; it is training on all post-purge 2012 rows in the unseen CSV and evaluating on all post-purge 2023 rows in the unseen CSV, including 13,832 2023-only plots and 3,487 2012-only plots. This is the exact data-loading divergence most likely to explain the unexpected positive R² behavior.
+Table 4.2 is the temporal unseen-CSV experiment. Every model switches from `DATA_PATH_PURGED` to `DATA_PATH_UNSEEN`: AvgByAge, Chapman-Richards, DNN, and PINN all train on the unseen CSV's 31,147 post-purge 2012 rows and evaluate on the unseen CSV's 41,492 post-purge 2023 rows. Only 27,660 of those test rows are common with the 2012 side; 13,832 are 2023-only plots. This is intentional and should be stated clearly in the methods.
 
 ### Table 4.3
 
@@ -461,33 +489,33 @@ Table 4.3 is a 3-fold cross-validation experiment within 2012 purged data. It us
 
 Table 4.4 is a 3-fold cross-validation experiment within 2023 purged data. It uses the same purged CSV as Table 4.1 but uses only 2023 rows. Each fold trains on 18,440 2023 rows and tests on 9,220 2023 rows. For DNN/PINN, the 18,440 fold-training rows are split into 12,354 train and 6,086 validation rows. Structurally, it differs from Table 4.1 because both train and test are 2023 same-year rows, not 2012-to-2023 temporal prediction.
 
-## 8. Open Questions / Suspicious Code
+## 8. Current Open Items / Resolved Audit Notes
 
-1. `common/data_utils.py:31` references `config.DATA_PATH`, but `common/config.py` defines only `DATA_PATH_PURGED` and `DATA_PATH_UNSEEN`. Any call to `load_data()` without an explicit path will fail.
+### Current Open Items
 
-2. The `load_data()` docstring says "We only keep plots that exist in BOTH years" (`common/data_utils.py:10-11`), but the implementation does not subset `df12`/`df23` to `common_ids`. It only drops negative-growth common plots. This mismatch is harmless for the purged CSV but not for the unseen CSV.
+1. `common/data_utils.py:31` still references `config.DATA_PATH`, but `common/config.py` defines only `DATA_PATH_PURGED` and `DATA_PATH_UNSEEN`. Any call to `load_data()` without an explicit path will fail. Normal training/evaluation scripts pass an explicit path, so this is a low-risk cleanup item.
 
-3. Table 4.2's current data path likely does not mean what "unseen plots" normally implies. It uses the unseen CSV's 2012 rows for training and the same unseen CSV's 2023 rows for testing, after negative-growth purge, with many non-common plots retained. If the intended Table 4.2 is "train on Table 4.1 common/purged 2012 and test on plots unseen in that training set", the current implementation is not doing that.
+2. Existing spatial PNGs may be stale until regenerated with the current plotting code. The current standard maps are:
+   - `spatial_error_map.png`: capped relative error, `min(abs(y_true - y_pred) / (abs(y_true) + 1e-8), 0.5)`.
+   - `spatial_signed_error_map.png`: signed relative error, `(y_true - y_pred) / (abs(y_true) + 1e-8)`.
+   Both maps now write JSON sidecars and combined comparison scripts refuse mixed metadata.
 
-4. PINN Table 4.2 uses CR parameters fitted on the unseen CSV (`models/pinn_baseline/train.py:180-181`), while Tables 4.1/4.3/4.4 use CR parameters fitted on the purged CSV. This may be intended, but it means the physics prior changes between tables.
+3. DNN and PINN still do not save table-level prediction CSVs for every table. This is not required for the current Table 4.1 plot workflow because their checkpoints can regenerate predictions, but prediction CSVs would improve reproducibility.
 
-5. The PINN file header says checkpoint/config/training curve are "Table 4.2 only" (`models/pinn_baseline/train.py:9-15`), and the CLI help says `--table 4.2` also saves checkpoint/plots (`models/pinn_baseline/train.py:22`). The current implementation saves checkpoint/config only when Table 4.1 ran (`models/pinn_baseline/train.py:324-369`). DNN comments correctly say the checkpoint is Table 4.1-based (`models/dnn_baseline/train.py:193-210`).
+4. PINN partial reruns can preserve stale rows in `outputs/pinn_baseline/results.csv` because `load_existing_results()` merges old and new rows. This is convenient for running one table at a time, but should be handled carefully in final reporting.
 
-6. The README still refers to a single `DATA_PATH` (`README.md` says `DATA_PATH` in multiple places), but the code now has `DATA_PATH_PURGED` and `DATA_PATH_UNSEEN`.
+5. README text is stale. It still refers to a single `DATA_PATH` and under-describes the current four-model setup.
 
-7. The README says only Chapman-Richards and PINN are currently included, but the repo also includes AvgByAge and DNN baselines.
+6. `YIELD_CLASS`, `PRI_PCT_AREA`, and `SHAPE_AREA` are not constant across years for all common plots. This is not a current model bug because they are excluded from `FEATURES`, but any prose or future model treating them as static should be corrected.
 
-8. `outputs/compare_results/compare_results.py` hardcodes Reuben's Table 4.2 metrics. The saved local results are different, and the script does not flag large deviations beyond printing side-by-side tables.
+### Resolved / Intended Design
 
-9. `models/avg_by_age/train.py:33` checks `if "Table 4.2" in run_name`, but run names are `"Temporal (Table 4.2)"`, so this condition is true. That diagnostic block is specific to Table 4.2 and prints extra stats only for that experiment.
+1. Table 4.2 is intentionally the full unseen-CSV temporal experiment, not a common-only subset. It trains on 31,147 post-purge 2012 rows and tests on 41,492 post-purge 2023 rows.
 
-10. `csv` is imported but unused in several training files (`models/chapman_richards/train.py`, `models/avg_by_age/train.py`, `models/pinn_baseline/train.py`).
+2. Feature differences are intentional. AvgByAge and Chapman-Richards are age-only baselines; DNN and PINN are full-feature neural models.
 
-11. Plotting functions duplicate metric formulas locally instead of using `common.metrics.reuben_metrics()`. For positive heights this is not a numerical issue, but it is a consistency risk if zeros/negative values ever appear.
+3. PINN's Chapman-Richards prior is an intentional fixed-prior design choice. It should be documented as part of the PINN method rather than treated as a split bug.
 
-12. The purged CSV has an extra unnamed first column, while the unseen CSV does not. The current feature list ignores it, so this is not affecting models, but it is another data-shape difference between the two files.
+4. Plotting functions now centralize metric/title logic through `common/spatial_plots.py` and `common.metrics.reuben_metrics()`.
 
-13. `YIELD_CLASS`, `PRI_PCT_AREA`, and `SHAPE_AREA` are not constant across years for all common plots. This is not a current model bug because they are excluded from `FEATURES`, but any prose or future model treating them as static should be corrected.
-
-14. Saved results show Table 4.2 is currently positive R² for all saved local baselines: AvgByAge `0.2565`, CR `0.4206`, DNN `0.1631`, PINN `0.4710`. Given the data path above, these are results for the current Table 4.2 implementation, not proof that the intended Table 4.2 protocol is correct.
-
+5. `outputs/compare_results/compare_results.py` now defaults to Table 4.1 only and supports `--table 4.2`, `--table 4.3`, `--table 4.4`, and `--table all`.
