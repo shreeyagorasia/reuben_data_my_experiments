@@ -116,13 +116,15 @@ Implemented fix:
 
 ## Plotting Consistency
 
-The current plot code has been mostly standardized for spatial hexbins:
+The current plot code has been standardized for spatial hexbins:
 
-- Absolute error maps use `C = np.abs(y_test - y_pred)`.
-- Absolute maps use `vmin=0`, `vmax=10`.
-- Absolute maps use `cmap=plt.cm.viridis`.
-- Signed maps use `C = y_test - y_pred`.
-- Signed maps use `vmin=-10`, `vmax=10`.
+- Unsigned spatial error maps use Reuben-style capped relative error:
+  `C = min(abs(y_test - y_pred) / (abs(y_test) + 1e-8), 0.5)`.
+- Unsigned maps use `vmin=0`, `vmax=0.5`.
+- Unsigned maps use `cmap=plt.cm.viridis`.
+- Signed maps use signed relative error:
+  `C = (y_test - y_pred) / (abs(y_test) + 1e-8)`.
+- Signed maps use `vmin=-1`, `vmax=1`.
 - Signed maps use `PINK_WHITE_BLUE`.
 - All checked maps use `reduce_C_function=np.mean`.
 

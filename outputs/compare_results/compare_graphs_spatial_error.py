@@ -12,7 +12,7 @@ MODEL_MAP = {
     "avg_by_age": "AvgByAge",
 }
 
-EXPECTED_PLOT_TYPE = "absolute_error"
+EXPECTED_PLOT_TYPE = "relative_error_capped"
 EXPECTED_TABLE = "Table4.1"
 COMPARABLE_KEYS = [
     "plot_type",
@@ -81,7 +81,7 @@ def main():
             
             caption = (
                 f"{metadata['table']} | n={metadata['n_test']:,} | "
-                f"MAE={metadata.get('metric_values', {}).get('mae', float('nan')):.2f} | "
+                f"MRE={metadata.get('metric_values', {}).get('mre', float('nan')):.3f} | "
                 f"vmin/vmax={metadata['vmin']}/{metadata['vmax']}"
             )
             
@@ -109,7 +109,16 @@ def main():
     rows = (n_plots + 1) // cols
     
     fig, axes = plt.subplots(rows, cols, figsize=(12, 5 * rows))
-    fig.suptitle('Spatial Error Comparison (Temporal Experiment)', fontsize=16, fontweight='bold', y=1.02)
+    fig.suptitle('Spatial Relative Error Comparison (Temporal Experiment)', fontsize=16, fontweight='bold', y=1.05)
+    fig.text(
+        0.5,
+        0.995,
+        "Each panel is a spatial hexbin map: x-axis = Easting, y-axis = Northing (OS National Grid); colour shows mean capped relative error for plots in that area.",
+        ha="center",
+        va="top",
+        fontsize=10,
+        color="dimgray",
+    )
     axes = axes.flatten()
 
     for i, data in enumerate(plot_data):

@@ -12,7 +12,7 @@ MODEL_MAP = {
     "avg_by_age": "AvgByAge",
 }
 
-EXPECTED_PLOT_TYPE = "signed_error"
+EXPECTED_PLOT_TYPE = "signed_relative_error"
 EXPECTED_TABLE = "Table4.1"
 COMPARABLE_KEYS = [
     "plot_type",
@@ -81,7 +81,7 @@ def main():
             
             caption = (
                 f"{metadata['table']} | n={metadata['n_test']:,} | "
-                f"mean signed={metadata['c_mean']:+.2f} | "
+                f"mean signed rel={metadata['c_mean']:+.3f} | "
                 f"vmin/vmax={metadata['vmin']}/{metadata['vmax']}"
             )
             
@@ -109,7 +109,25 @@ def main():
     rows = (n_plots + 1) // cols
     
     fig, axes = plt.subplots(rows, cols, figsize=(12, 5 * rows))
-    fig.suptitle('Spatial Signed Error Comparison (Temporal Experiment)', fontsize=16, fontweight='bold', y=1.02)
+    fig.suptitle('Spatial Signed Relative Error Comparison (Temporal Experiment)', fontsize=16, fontweight='bold', y=1.07)
+    fig.text(
+        0.5,
+        1.02,
+        "Each panel is a spatial hexbin map: x-axis = Easting, y-axis = Northing (OS National Grid); colour shows mean signed relative error for plots in that area.",
+        ha="center",
+        va="top",
+        fontsize=10,
+        color="dimgray",
+    )
+    fig.text(
+        0.5,
+        0.99,
+        "Signed relative error = (actual - predicted) / actual; negative = actual < predicted (overpredicted/reduced growth), positive = actual > predicted (underpredicted)",
+        ha="center",
+        va="top",
+        fontsize=10,
+        color="dimgray",
+    )
     axes = axes.flatten()
 
     for i, data in enumerate(plot_data):
