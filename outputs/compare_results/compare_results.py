@@ -1,5 +1,21 @@
+"""
+Compare saved model metrics against Reuben's original dissertation tables.
+
+Default usage prints/validates Table 4.1 only, which is the main temporal
+common-plot experiment:
+
+    python outputs/compare_results/compare_results.py
+
+Other options:
+
+    python outputs/compare_results/compare_results.py --table 4.2
+    python outputs/compare_results/compare_results.py --table 4.3
+    python outputs/compare_results/compare_results.py --table 4.4
+    python outputs/compare_results/compare_results.py --table all
+"""
+
 import os
-import pandas as pd
+import argparse
 
 # Reuben's original baseline metrics across all tables
 REUBEN_METRICS = {
@@ -45,8 +61,52 @@ MODEL_MAP = {
 
 # Mapping of CSV metric keys to display names
 METRIC_MAP = {'mae': 'MAE', 'mse': 'MSE', 'r2': 'R²', 'mre': 'MRE', 'acc': 'Acc%'}
+EXPECTED_TABLES = ["4.1", "4.2", "4.3", "4.4"]
+EXPECTED_MODELS = sorted(MODEL_MAP.values())
+EXPECTED_METRICS = list(METRIC_MAP.values())
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Compare local model results against Reuben's original metrics.")
+    parser.add_argument(
+        "--table",
+        choices=["4.1", "4.2", "4.3", "4.4", "all"],
+        default="4.1",
+        help="Which table to print and validate. Default: 4.1. Use 'all' for all tables.",
+    )
+    return parser.parse_args()
+
+
+def selected_tables(table_arg):
+    return EXPECTED_TABLES if table_arg == "all" else [table_arg]
+
+
+def validate_complete_results(all_my_results, table_ids):
+    """Fail fast if any model/table/metric is missing from the comparison."""
+    missing = []
+    for table_id in table_ids:
+        if table_id not in all_my_results:
+            missing.append(f"Table {table_id}: missing entire table")
+            continue
+        for model_name in EXPECTED_MODELS:
+            if model_name not in all_my_results[table_id]:
+                missing.append(f"Table {table_id}: missing model {model_name}")
+                continue
+            for metric in EXPECTED_METRICS:
+                if metric not in all_my_results[table_id][model_name]:
+                    missing.append(f"Table {table_id}, {model_name}: missing metric {metric}")
+    if missing:
+        detail = "\n".join(f"  - {item}" for item in missing)
+        raise ValueError(
+            "Comparison results are incomplete. Regenerate/sync all model results before comparing.\n"
+            f"{detail}"
+        )
 
 def main():
+    args = parse_args()
+    tables_to_print = selected_tables(args.table)
+    import pandas as pd
+
     # This script is in the 'outputs/compare_results' folder.
     # We need to go up one level to find the main 'outputs' folder where all the model results are.
     outputs_dir = os.path.join(os.path.dirname(__file__), '..')
@@ -106,6 +166,13 @@ def main():
                             all_my_results[table_id][model_display_name] = {}
                         
                         all_my_results[table_id][model_display_name][display_metric] = value
+        else:
+            raise FileNotFoundError(
+                f"Missing results.csv for {MODEL_MAP[model_folder_name]}: {results_csv_path}\n"
+                "Regenerate/sync all model outputs before comparing results."
+            )
+
+    validate_complete_results(all_my_results, tables_to_print)
 
     # --- Step 2: Build the output text ---
     # We will build up a big string with all our tables.
@@ -115,7 +182,7 @@ def main():
     # We want the columns in our tables to be in a specific order.
     cols_order = ["MAE", "MSE", "R²", "MRE", "Acc%"]
     # We also want to print the tables in order (4.1, 4.2, ...).
-    table_ids_sorted = sorted(all_my_results.keys())
+    table_ids_sorted = tables_to_print
 
     # Loop through each table ID we found results for.
     for table_id in table_ids_sorted:
@@ -164,7 +231,8 @@ def main():
     print(final_output_string)
 
     # Define where we want to save the output file.
-    summary_file_path = os.path.join(outputs_dir, "compare_results", "comparison_summary.txt")
+    summary_name = "comparison_summary_all.txt" if args.table == "all" else f"comparison_summary_table_{args.table}.txt"
+    summary_file_path = os.path.join(outputs_dir, "compare_results", summary_name)
     # Make sure the 'compare_results' folder exists.
     os.makedirs(os.path.dirname(summary_file_path), exist_ok=True)
 
