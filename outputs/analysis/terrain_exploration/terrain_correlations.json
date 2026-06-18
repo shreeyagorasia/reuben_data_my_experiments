@@ -1,0 +1,86 @@
+[
+  {
+    "terrain_feature": "DEM_ELEVATION",
+    "target": "CR_RESIDUAL_2023",
+    "n": 27660,
+    "pearson_r": -0.39903240871940915,
+    "spearman_r": -0.3739107974487283
+  },
+  {
+    "terrain_feature": "DEM_ELEVATION",
+    "target": "PINN_RESIDUAL_2023",
+    "n": 27660,
+    "pearson_r": -0.25091725436462586,
+    "spearman_r": -0.20909547891821653
+  },
+  {
+    "terrain_feature": "DEM_ELEVATION",
+    "target": "PINN_REL_ERROR",
+    "n": 27660,
+    "pearson_r": 0.0366536055630242,
+    "spearman_r": -0.028628192340816986
+  },
+  {
+    "terrain_feature": "DEM_ELEVATION",
+    "target": "CR_REL_ERROR",
+    "n": 27660,
+    "pearson_r": 0.07932841504033193,
+    "spearman_r": -0.1047621619655777
+  },
+  {
+    "terrain_feature": "DEM_ELEVATION",
+    "target": "X",
+    "n": 27660,
+    "pearson_r": -0.46151814399773555,
+    "spearman_r": -0.5081516054004804
+  },
+  {
+    "terrain_feature": "DEM_ELEVATION",
+    "target": "Y",
+    "n": 27660,
+    "pearson_r": 0.2883586441330294,
+    "spearman_r": 0.2905985875496901
+  },
+  {
+    "terrain_feature": "DEM_RUGGEDNESS",
+    "target": "CR_RESIDUAL_2023",
+    "n": 27660,
+    "pearson_r": 0.15868038880276883,
+    "spearman_r": 0.1432428906361744
+  },
+  {
+    "terrain_feature": "DEM_RUGGEDNESS",
+    "target": "PINN_RESIDUAL_2023",
+    "n": 27660,
+    "pearson_r": 0.14641712875453053,
+    "spearman_r": 0.1401357972009966
+  },
+  {
+    "terrain_feature": "DEM_RUGGEDNESS",
+    "target": "PINN_REL_ERROR",
+    "n": 27660,
+    "pearson_r": -0.12703112617043508,
+    "spearman_r": -0.08556205962473988
+  },
+  {
+    "terrain_feature": "DEM_RUGGEDNESS",
+    "target": "CR_REL_ERROR",
+    "n": 27660,
+    "pearson_r": -0.1680573753072558,
+    "spearman_r": -0.11866574291683582
+  },
+  {
+    "terrain_feature": "DEM_RUGGEDNESS",
+    "target": "X",
+    "n": 27660,
+    "pearson_r": -0.320032361481974,
+    "spearman_r": -0.24588605584375514
+  },
+  {
+    "terrain_feature": "DEM_RUGGEDNESS",
+    "target": "Y",
+    "n": 27660,
+    "pearson_r": 0.38583736632921445,
+    "spearman_r": 0.4017227007732767
+  }
+]

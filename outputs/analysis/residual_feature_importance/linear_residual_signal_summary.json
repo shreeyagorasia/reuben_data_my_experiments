@@ -1,0 +1,140 @@
+{
+  "purpose": "Exploratory linear residual signal analysis, not a new prediction model.",
+  "targets": [
+    "CR_RESIDUAL_2023",
+    "PINN_RESIDUAL_2023"
+  ],
+  "ridge_alpha": 1.0,
+  "feature_set_cv_metrics": [
+    {
+      "target": "CR_RESIDUAL_2023",
+      "feature_set": "DEM only",
+      "n_features": 2,
+      "cv_r2": 0.21317715431351103,
+      "cv_mae": 3.7646758987245943,
+      "cv_rmse": 4.854264026146747,
+      "unexplained_fraction": 0.786822845686489
+    },
+    {
+      "target": "CR_RESIDUAL_2023",
+      "feature_set": "Coordinates only",
+      "n_features": 2,
+      "cv_r2": 0.04488410619593486,
+      "cv_mae": 4.238280940066088,
+      "cv_rmse": 5.34826538985059,
+      "unexplained_fraction": 0.9551158938040651
+    },
+    {
+      "target": "CR_RESIDUAL_2023",
+      "feature_set": "Existing PINN features",
+      "n_features": 18,
+      "cv_r2": 0.05192002033004217,
+      "cv_mae": 4.217550262574408,
+      "cv_rmse": 5.328529830280681,
+      "unexplained_fraction": 0.9480799796699578
+    },
+    {
+      "target": "CR_RESIDUAL_2023",
+      "feature_set": "Existing without coordinates",
+      "n_features": 16,
+      "cv_r2": 0.011801989961992887,
+      "cv_mae": 4.332526629574672,
+      "cv_rmse": 5.440100225692594,
+      "unexplained_fraction": 0.9881980100380071
+    },
+    {
+      "target": "CR_RESIDUAL_2023",
+      "feature_set": "Coordinates + DEM",
+      "n_features": 4,
+      "cv_r2": 0.2228843981640244,
+      "cv_mae": 3.733474871054184,
+      "cv_rmse": 4.82422691798666,
+      "unexplained_fraction": 0.7771156018359756
+    },
+    {
+      "target": "CR_RESIDUAL_2023",
+      "feature_set": "All features + DEM",
+      "n_features": 20,
+      "cv_r2": 0.2383907469015344,
+      "cv_mae": 3.6969174311284387,
+      "cv_rmse": 4.775853754351514,
+      "unexplained_fraction": 0.7616092530984656
+    },
+    {
+      "target": "PINN_RESIDUAL_2023",
+      "feature_set": "DEM only",
+      "n_features": 2,
+      "cv_r2": 0.10032447640187347,
+      "cv_mae": 3.5134812351284497,
+      "cv_rmse": 4.5087435773534,
+      "unexplained_fraction": 0.8996755235981265
+    },
+    {
+      "target": "PINN_RESIDUAL_2023",
+      "feature_set": "Coordinates only",
+      "n_features": 2,
+      "cv_r2": 0.025074056721467786,
+      "cv_mae": 3.667459255979304,
+      "cv_rmse": 4.693517026706966,
+      "unexplained_fraction": 0.9749259432785322
+    },
+    {
+      "target": "PINN_RESIDUAL_2023",
+      "feature_set": "Existing PINN features",
+      "n_features": 18,
+      "cv_r2": 0.03209943182707986,
+      "cv_mae": 3.6485396059198636,
+      "cv_rmse": 4.676575567946674,
+      "unexplained_fraction": 0.9679005681729201
+    },
+    {
+      "target": "PINN_RESIDUAL_2023",
+      "feature_set": "Existing without coordinates",
+      "n_features": 16,
+      "cv_r2": 0.0012480751064983808,
+      "cv_mae": 3.7459746016641553,
+      "cv_rmse": 4.75052271117013,
+      "unexplained_fraction": 0.9987519248935016
+    },
+    {
+      "target": "PINN_RESIDUAL_2023",
+      "feature_set": "Coordinates + DEM",
+      "n_features": 4,
+      "cv_r2": 0.1314016332628929,
+      "cv_mae": 3.43402678205253,
+      "cv_rmse": 4.43018730471854,
+      "unexplained_fraction": 0.8685983667371071
+    },
+    {
+      "target": "PINN_RESIDUAL_2023",
+      "feature_set": "All features + DEM",
+      "n_features": 20,
+      "cv_r2": 0.1333194353149847,
+      "cv_mae": 3.4281678091820678,
+      "cv_rmse": 4.4252938363593595,
+      "unexplained_fraction": 0.8666805646850153
+    }
+  ],
+  "incremental_dem_summary": [
+    {
+      "target": "CR_RESIDUAL_2023",
+      "dem_only_cv_r2": 0.21317715431351103,
+      "coordinates_only_cv_r2": 0.04488410619593486,
+      "dem_gain_over_coordinates": 0.17800029196808953,
+      "existing_pinn_features_cv_r2": 0.05192002033004217,
+      "dem_gain_over_existing_pinn_features": 0.18647072657149222,
+      "all_features_plus_dem_cv_r2": 0.2383907469015344,
+      "unexplained_after_all_features_plus_dem": 0.7616092530984656
+    },
+    {
+      "target": "PINN_RESIDUAL_2023",
+      "dem_only_cv_r2": 0.10032447640187347,
+      "coordinates_only_cv_r2": 0.025074056721467786,
+      "dem_gain_over_coordinates": 0.1063275765414251,
+      "existing_pinn_features_cv_r2": 0.03209943182707986,
+      "dem_gain_over_existing_pinn_features": 0.10122000348790483,
+      "all_features_plus_dem_cv_r2": 0.1333194353149847,
+      "unexplained_after_all_features_plus_dem": 0.8666805646850153
+    }
+  ]
+}

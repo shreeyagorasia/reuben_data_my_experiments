@@ -1,0 +1,33 @@
+{
+  "input": "/Users/shreeyagorasia/UoE_Docs/Dissertation/reuben_diss/Reuben_data_my_experiments/data/Aber_1223_conjoin_plot_purged_expanded_encoded.csv",
+  "output": "/Users/shreeyagorasia/UoE_Docs/Dissertation/reuben_diss/Reuben_data_my_experiments/outputs/analysis/terrain_exploration/terrain_augmented_purged.csv",
+  "n_rows": 55320,
+  "n_plots": 27660,
+  "missing_elevation": 0,
+  "plots_with_multiple_elevations": 0,
+  "tiles": [
+    "Copernicus_DSM_COG_10_N56_00_W005_00_DEM"
+  ],
+  "terrain_summary": {
+    "DEM_ELEVATION": {
+      "count": 55320.0,
+      "mean": 184.88735343570391,
+      "std": 103.82230815095426,
+      "min": 14.227760314941406,
+      "25%": 109.93614768981934,
+      "50%": 159.56757354736328,
+      "75%": 245.74526977539062,
+      "max": 515.7406616210938
+    },
+    "DEM_RUGGEDNESS": {
+      "count": 55320.0,
+      "mean": 5.537315171464609,
+      "std": 3.0174276273058704,
+      "min": 0.26780435058486635,
+      "25%": 3.2670324559066604,
+      "50%": 4.983209725391982,
+      "75%": 7.2477291786226745,
+      "max": 22.465713727943605
+    }
+  }
+}

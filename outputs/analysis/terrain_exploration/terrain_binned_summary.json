@@ -1,0 +1,83 @@
+[
+  {
+    "group_type": "ELEVATION_BIN",
+    "group": "0-100m",
+    "n": 5611,
+    "cr_residual_mean": 4.135501516137147,
+    "pinn_residual_mean": 2.581897578074576,
+    "pinn_rel_error_mean": 0.16337113867301895,
+    "cr_rel_error_mean": 0.21601713366074798
+  },
+  {
+    "group_type": "ELEVATION_BIN",
+    "group": "100-200m",
+    "n": 12285,
+    "cr_residual_mean": 3.2135778352530484,
+    "pinn_residual_mean": 3.0312520430975747,
+    "pinn_rel_error_mean": 0.1669938870865811,
+    "cr_rel_error_mean": 0.17725774033230002
+  },
+  {
+    "group_type": "ELEVATION_BIN",
+    "group": "200-300m",
+    "n": 5189,
+    "cr_residual_mean": 2.297096861656418,
+    "pinn_residual_mean": 2.4517398925830505,
+    "pinn_rel_error_mean": 0.1435697011585437,
+    "cr_rel_error_mean": 0.14859185194937713
+  },
+  {
+    "group_type": "ELEVATION_BIN",
+    "group": "300-400m",
+    "n": 3541,
+    "cr_residual_mean": -1.722985331074715,
+    "pinn_residual_mean": 0.40104519764400565,
+    "pinn_rel_error_mean": 0.14529903997658172,
+    "cr_rel_error_mean": 0.21404122417727994
+  },
+  {
+    "group_type": "ELEVATION_BIN",
+    "group": "400m+",
+    "n": 1034,
+    "cr_residual_mean": -5.460303219858751,
+    "pinn_residual_mean": -4.191727066854128,
+    "pinn_rel_error_mean": 0.2934926910145205,
+    "cr_rel_error_mean": 0.36656414581786745
+  },
+  {
+    "group_type": "RUGGEDNESS_QUARTILE",
+    "group": "Q1 lowest",
+    "n": 6915,
+    "cr_residual_mean": 0.8356617260246176,
+    "pinn_residual_mean": 0.9973439097887771,
+    "pinn_rel_error_mean": 0.1889914072853555,
+    "cr_rel_error_mean": 0.22897437337680085
+  },
+  {
+    "group_type": "RUGGEDNESS_QUARTILE",
+    "group": "Q2",
+    "n": 6915,
+    "cr_residual_mean": 2.2157277204066497,
+    "pinn_residual_mean": 2.259947793778049,
+    "pinn_rel_error_mean": 0.16205793499824328,
+    "cr_rel_error_mean": 0.19470832363725016
+  },
+  {
+    "group_type": "RUGGEDNESS_QUARTILE",
+    "group": "Q3",
+    "n": 6915,
+    "cr_residual_mean": 2.7438972298204396,
+    "pinn_residual_mean": 2.697467561860881,
+    "pinn_rel_error_mean": 0.15939076262134744,
+    "cr_rel_error_mean": 0.18035510376548824
+  },
+  {
+    "group_type": "RUGGEDNESS_QUARTILE",
+    "group": "Q4 highest",
+    "n": 6915,
+    "cr_residual_mean": 3.294473806986886,
+    "pinn_residual_mean": 2.9438513232019177,
+    "pinn_rel_error_mean": 0.14482437583702504,
+    "cr_rel_error_mean": 0.16207556123137953
+  }
+]

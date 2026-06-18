@@ -1,0 +1,8 @@
+{
+  "figures": {
+    "terrain_maps.png": "Elevation and ruggedness hexbin maps.",
+    "residual_alignment.png": "PINN/CR signed relative error beside elevation/ruggedness.",
+    "terrain_residual_scatter.png": "Scatter plots with Pearson/Spearman correlations and binned trend lines.",
+    "terrain_binned_errors.png": "Boxplots of error/residual distributions by terrain bins."
+  }
+}
