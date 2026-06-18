@@ -80,8 +80,10 @@ def save_table_4_2_artifacts(df_train, df_test, common_ids, metrics, y_pred):
         },
         "output_files": {
             "results": "results.csv",
-            "spatial_error_map": "spatial_error_map.png",
-            "spatial_signed_error_map": "spatial_signed_error_map.png",
+            "spatial_error_map": "spatial_error_map.png (Table 4.1 temporal common plots)",
+            "spatial_error_metadata": "spatial_error_map.json",
+            "spatial_signed_error_map": "spatial_signed_error_map.png (Table 4.1 temporal common plots)",
+            "spatial_signed_error_metadata": "spatial_signed_error_map.json",
             "age_lookup": "table4_2_age_lookup.csv",
             "predictions": "table4_2_predictions.csv",
             "config_used": "config_used.json",
@@ -132,7 +134,7 @@ def main():
 
     # --- Experiment for Table 4.1 (Temporal, Common Plots) ---
     print("\n--- Running Experiment for Table 4.1: Temporal (Common Plots) ---")
-    metrics_t1, _ = run_avg_by_age(df12_purged, df23_purged, "Temporal (Table 4.1)")
+    metrics_t1, y_pred_t1 = run_avg_by_age(df12_purged, df23_purged, "Temporal (Table 4.1)")
     for k, v in metrics_t1.items():
         all_results[f"Table4.1_{k}"] = v
 
@@ -161,22 +163,22 @@ def main():
     for k, v in metrics_t2.items():
         all_results[f"Table4.2_{k}"] = v
 
-    X_coords_unseen = df23_unseen["X"].values
-    Y_coords_unseen = df23_unseen["Y"].values
-    y_test_unseen = df23_unseen[config.TARGET_COL].values
+    X_coords_purged = df23_purged["X"].values
+    Y_coords_purged = df23_purged["Y"].values
+    y_test_purged = df23_purged[config.TARGET_COL].values
     plot_spatial_error(
-        X_coords_unseen,
-        Y_coords_unseen,
-        y_test_unseen,
-        y_pred_unseen,
+        X_coords_purged,
+        Y_coords_purged,
+        y_test_purged,
+        y_pred_t1,
         "(b) AvgByAge Baseline",
         config.OUTPUT_DIR,
     )
     plot_spatial_signed_error(
-        X_coords_unseen,
-        Y_coords_unseen,
-        y_test_unseen,
-        y_pred_unseen,
+        X_coords_purged,
+        Y_coords_purged,
+        y_test_purged,
+        y_pred_t1,
         "(b) AvgByAge Baseline",
         config.OUTPUT_DIR,
     )

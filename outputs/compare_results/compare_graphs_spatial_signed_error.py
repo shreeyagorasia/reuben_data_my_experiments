@@ -1,5 +1,6 @@
 import os
 import json
+os.environ.setdefault("MPLCONFIGDIR", "/tmp")
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
@@ -10,6 +11,56 @@ MODEL_MAP = {
     "chapman_richards": "CR",
     "avg_by_age": "AvgByAge",
 }
+
+EXPECTED_PLOT_TYPE = "signed_error"
+EXPECTED_TABLE = "Table4.1"
+COMPARABLE_KEYS = [
+    "plot_type",
+    "table",
+    "data_path_label",
+    "n_test",
+    "vmin",
+    "vmax",
+    "cmap",
+    "reduce_C_function",
+    "gridsize",
+]
+
+
+def metadata_path_for(plot_path):
+    stem, _ = os.path.splitext(plot_path)
+    return f"{stem}.json"
+
+
+def load_plot_metadata(plot_path, display_name):
+    metadata_path = metadata_path_for(plot_path)
+    if not os.path.exists(metadata_path):
+        raise FileNotFoundError(
+            f"Missing metadata for {display_name}: {metadata_path}\n"
+            "Regenerate the model spatial plots before combining them."
+        )
+    with open(metadata_path, "r") as f:
+        metadata = json.load(f)
+    if metadata.get("plot_type") != EXPECTED_PLOT_TYPE:
+        raise ValueError(f"{display_name} plot_type={metadata.get('plot_type')} but expected {EXPECTED_PLOT_TYPE}")
+    if metadata.get("table") != EXPECTED_TABLE:
+        raise ValueError(f"{display_name} table={metadata.get('table')} but expected {EXPECTED_TABLE}")
+    return metadata
+
+
+def assert_comparable(plot_data):
+    if not plot_data:
+        return
+    reference = {key: plot_data[0]["metadata"].get(key) for key in COMPARABLE_KEYS}
+    for data in plot_data[1:]:
+        current = {key: data["metadata"].get(key) for key in COMPARABLE_KEYS}
+        if current != reference:
+            raise ValueError(
+                "Spatial signed-error plots are not comparable.\n"
+                f"Reference ({plot_data[0]['model_name']}): {reference}\n"
+                f"Current ({data['model_name']}): {current}"
+            )
+
 
 def main():
     outputs_dir = os.path.join(os.path.dirname(__file__), '..')
@@ -23,38 +74,34 @@ def main():
     for folder_name, display_name in MODEL_MAP.items():
         model_dir = os.path.join(outputs_dir, folder_name)
         plot_path = os.path.join(model_dir, target_filename)
-        config_path = os.path.join(model_dir, "config_used.json")
         
         if os.path.exists(plot_path):
             print(f"  Found plot for {display_name}")
+            metadata = load_plot_metadata(plot_path, display_name)
             
-            # Default caption acknowledging it's the temporal experiment
-            caption = "Temporal Experiment"
+            caption = (
+                f"{metadata['table']} | n={metadata['n_test']:,} | "
+                f"mean signed={metadata['c_mean']:+.2f} | "
+                f"vmin/vmax={metadata['vmin']}/{metadata['vmax']}"
+            )
             
-            # If a config exists (like for the PINN), grab details for the caption
-            if os.path.exists(config_path):
-                try:
-                    with open(config_path, 'r') as f:
-                        cfg = json.load(f)
-                    
-                    cfg_details = []
-                    if 'learning_rate' in cfg: cfg_details.append(f"LR: {cfg['learning_rate']}")
-                    if 'epochs_run' in cfg or 'epochs_max' in cfg: 
-                        cfg_details.append(f"Epochs: {cfg.get('epochs_run', cfg.get('epochs_max'))}")
-                    if 'lambda_ph' in cfg: cfg_details.append(f"λ_ph: {cfg['lambda_ph']}")
-                        
-                    if cfg_details:
-                        caption = f"Temporal Experiment | {', '.join(cfg_details)}"
-                except Exception as e:
-                    print(f"    Could not read config for {display_name}: {e}")
-            
-            plot_data.append({"model_name": display_name, "plot_path": plot_path, "caption": caption})
+            plot_data.append({
+                "model_name": display_name,
+                "plot_path": plot_path,
+                "caption": caption,
+                "metadata": metadata,
+            })
         else:
-            print(f"  No {target_filename} found for {display_name}")
+            raise FileNotFoundError(
+                f"Missing {target_filename} for {display_name}: {plot_path}\n"
+                "Regenerate all model plots before building the combined comparison figure."
+            )
 
     if not plot_data:
         print(f"\nNo {target_filename} plots found to combine. Make sure the models have generated them!")
         return
+
+    assert_comparable(plot_data)
 
     # Create a subplot grid (2 columns wide)
     n_plots = len(plot_data)

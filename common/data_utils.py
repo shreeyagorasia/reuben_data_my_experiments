@@ -7,8 +7,11 @@ arrays / tensors models need. Shared by every model.
 The overall idea:
   - 2012 data is used for TRAINING (it's the "before" state)
   - 2023 data is used for TESTING  (it's the "after" / target state)
-  - We only keep plots that exist in BOTH years, so we can compare
-    "what a plot looked like in 2012" to "what it grew into by 2023".
+  - Negative-growth common plots are dropped as noisy records.
+  - The returned df12/df23 frames are not automatically restricted to
+    common_ids. This is intentional for Table 4.2, where the unseen CSV uses
+    all post-purge 2012 rows for training and all post-purge 2023 rows for
+    testing, including 2023-only plots.
 """
 
 import os
@@ -25,8 +28,9 @@ def load_data(path=None):
 
     Returns
     -------
-    df12, df23 : DataFrames indexed by PLOT_ID, for 2012 and 2023
-    common_ids : PLOT_IDs that appear in both years
+    df12, df23 : DataFrames indexed by PLOT_ID, for 2012 and 2023 after
+        negative-growth common plots have been removed
+    common_ids : post-purge PLOT_IDs that appear in both years
     """
     path = path or config.DATA_PATH
     df = pd.read_csv(path)

@@ -7,19 +7,20 @@ using the Chapman-Richards as a physics prior.
 Requires outputs/chapman_richards/cr_params.json -- run models/chapman_richards/train.py first.
 
 Saves everything into outputs/pinn_baseline/:
-  - checkpoint.pt        : trained model + scalers + history (Table 4.2 only)
-  - config_used.json      : snapshot of the hyperparameters for this run (Table 4.2 only)
-  - results.json          : evaluation metrics
+  - checkpoint.pt        : trained model + scalers + history (Table 4.1 only)
+  - config_used.json      : snapshot of the hyperparameters for this run (Table 4.1 only)
+  - results.csv           : evaluation metrics
                           -     Reuben: "MAE": 4.0424, "MSE": 24.1570, "R²": 0.4378, "MRE": 0.1539, "Acc%": 84.61
 
-  - training_curve.png    : train/val loss over training (Table 4.2 only)
+  - training_curve.png    : train/val loss over training (Table 4.1 only)
+  - spatial_error_map.png : Table 4.1 temporal common-plot spatial error map
 
 Run with (from this folder):
     python train.py                 # runs all 4 tables (4.1, 4.3, 4.4, 4.2), like before
     python train.py --table 4.1     # runs just Table 4.1
     python train.py --table 4.3     # runs just the Table 4.3 3-fold CV
     python train.py --table 4.4     # runs just the Table 4.4 3-fold CV
-    python train.py --table 4.2     # runs just Table 4.2 (also saves checkpoint/plots)
+    python train.py --table 4.2     # runs just Table 4.2 metrics
 
 Each run merges its results into the existing outputs/pinn_baseline/results.csv
 rather than overwriting the rows from other tables.
@@ -49,6 +50,7 @@ from common.data_utils import (
 )
 from common.metrics import reuben_metrics
 from model import PINN, pinn_loss
+from plots import plot_spatial_error, plot_spatial_signed_error, plot_training_curve
 
 def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, cr_params, device, run_name=""):
     """Handles scaling, splitting, and training the PINN for a single given subset of data."""
@@ -363,10 +365,46 @@ def main():
             "early_stop_patience": config.EARLY_STOP_PATIENCE,
             "val_split": config.VAL_SPLIT,
             "random_seed": config.RANDOM_SEED,
+            "data_paths": {
+                "purged": config.DATA_PATH_PURGED,
+                "unseen": config.DATA_PATH_UNSEEN,
+            },
+            "feature_list": config.FEATURES,
+            "target_col": config.TARGET_COL,
+            "checkpoint_basis": "Table4.1",
+            "final_metrics": e["metrics"],
+            "output_files": {
+                "results": "results.csv",
+                "checkpoint": "checkpoint.pt",
+                "config_used": "config_used.json",
+                "training_curve": "training_curve.png",
+                "spatial_error_map": "spatial_error_map.png (Table 4.1 temporal common plots)",
+                "spatial_error_metadata": "spatial_error_map.json",
+                "spatial_signed_error_map": "spatial_signed_error_map.png (Table 4.1 temporal common plots)",
+                "spatial_signed_error_metadata": "spatial_signed_error_map.json",
+            },
         }
         config_path = os.path.join(config.OUTPUT_DIR, "config_used.json")
         with open(config_path, "w") as f:
             json.dump(config_used, f, indent=2)
+
+        plot_training_curve(e["ep_log"], e["tr_hist"], e["val_hist"], config.OUTPUT_DIR)
+        plot_spatial_error(
+            e["X_coords"],
+            e["Y_coords"],
+            e["y_te"],
+            e["y_pred"],
+            "(g) PINN Baseline (Common)",
+            config.OUTPUT_DIR,
+        )
+        plot_spatial_signed_error(
+            e["X_coords"],
+            e["Y_coords"],
+            e["y_te"],
+            e["y_pred"],
+            "(g) PINN Baseline (Common)",
+            config.OUTPUT_DIR,
+        )
 
 
 if __name__ == "__main__":

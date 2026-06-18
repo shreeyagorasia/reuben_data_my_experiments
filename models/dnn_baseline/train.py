@@ -17,6 +17,7 @@ import config
 from common.data_utils import load_data, build_feature_arrays, train_val_split, get_kfold_splits
 from common.metrics import reuben_metrics
 from model import DNN
+from plots import plot_spatial_error, plot_spatial_signed_error, plot_training_curve
 
 def run_training(X_tr_full, y_tr_full, X_te_full, y_te_full, device, run_name=""):
     """Handles scaling, splitting, and training for a single run."""
@@ -213,6 +214,24 @@ def main():
     torch.save(checkpoint, ckpt_path)
     print(f"\nSaved checkpoint to {ckpt_path}")
 
+    plot_training_curve(ep_log_t1, tr_hist_t1, val_hist_t1, config.OUTPUT_DIR)
+    plot_spatial_error(
+        X_coords_purged,
+        Y_coords_purged,
+        y_test_purged,
+        y_pred_t1,
+        "(f) DNN Temporal Error (Common)",
+        config.OUTPUT_DIR,
+    )
+    plot_spatial_signed_error(
+        X_coords_purged,
+        Y_coords_purged,
+        y_test_purged,
+        y_pred_t1,
+        "(f) DNN Temporal Error (Common)",
+        config.OUTPUT_DIR,
+    )
+
     config_used = {
         "model_name": config.MODEL_NAME,
         "architecture": {
@@ -265,6 +284,11 @@ def main():
             "results": "results.csv",
             "checkpoint": "checkpoint.pt",
             "config_used": "config_used.json",
+            "training_curve": "training_curve.png",
+            "spatial_error_map": "spatial_error_map.png (Table 4.1 temporal common plots)",
+            "spatial_error_metadata": "spatial_error_map.json",
+            "spatial_signed_error_map": "spatial_signed_error_map.png (Table 4.1 temporal common plots)",
+            "spatial_signed_error_metadata": "spatial_signed_error_map.json",
         },
     }
     config_path = os.path.join(config.OUTPUT_DIR, "config_used.json")
