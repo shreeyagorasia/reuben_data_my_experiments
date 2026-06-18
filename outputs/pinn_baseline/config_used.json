@@ -8,5 +8,48 @@
   "learning_rate": 0.0001,
   "early_stop_patience": 50,
   "val_split": 0.33,
-  "random_seed": 42
+  "random_seed": 42,
+  "data_paths": {
+    "purged": "/home/s2887183/reuben_data_my_experiments/data/Aber_1223_conjoin_plot_purged_expanded_encoded.csv",
+    "unseen": "/home/s2887183/reuben_data_my_experiments/data/Aber_1223_conjoin_expanded_encoded_duplicate_plots_removed.csv"
+  },
+  "feature_list": [
+    "X",
+    "Y",
+    "AGE",
+    "CULTIVATN_MOUNDING",
+    "CULTIVATN_NO CULTIVATION",
+    "PRILANDUSE_Dead High Forest",
+    "PRILANDUSE_Failed",
+    "PRILANDUSE_Felled",
+    "PRILANDUSE_High Forest",
+    "PRILANDUSE_Open",
+    "PRILANDUSE_Open Water",
+    "PRILANDUSE_Other Built Facility",
+    "PRILANDUSE_Partially Intruded Broadleaf",
+    "PRILANDUSE_Quarries",
+    "PRILANDUSE_Residential",
+    "PRILANDUSE_Unplantable or bare",
+    "PRILANDUSE_Unplanted streamsides",
+    "PRILANDUSE_Windblow"
+  ],
+  "target_col": "TOP_HEIGHT",
+  "checkpoint_basis": "Table4.1",
+  "final_metrics": {
+    "mae": 4.33723758194155,
+    "mse": 27.544742727953118,
+    "r2": 0.3589826083702242,
+    "mre": 0.16381610982272213,
+    "acc": 83.6183890177278
+  },
+  "output_files": {
+    "results": "results.csv",
+    "checkpoint": "checkpoint.pt",
+    "config_used": "config_used.json",
+    "training_curve": "training_curve.png",
+    "spatial_error_map": "spatial_error_map.png (Table 4.1 temporal common plots)",
+    "spatial_error_metadata": "spatial_error_map.json",
+    "spatial_signed_error_map": "spatial_signed_error_map.png (Table 4.1 temporal common plots)",
+    "spatial_signed_error_metadata": "spatial_signed_error_map.json"
+  }
 }

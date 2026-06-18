@@ -13,7 +13,7 @@
 
 # === SET THE TABLE YOU WANT TO REPLICATE HERE ===
 # Options: "4.1", "4.2", "4.3", "4.4", or "all"
-TABLE="4.1"
+TABLE="4.4"
 # ================================================
 
 echo "--- SLURM JOB START ---"

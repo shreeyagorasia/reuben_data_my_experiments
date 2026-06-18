@@ -1,0 +1,27 @@
+{
+  "plot_type": "signed_error",
+  "table": "Table4.1",
+  "data_path_label": "purged",
+  "data_path": "purged",
+  "title": "(g) PINN Baseline (Common)",
+  "filename": "spatial_signed_error_map.png",
+  "generated_at_utc": "2026-06-18T15:15:34.457198+00:00",
+  "n_test": 27660,
+  "y_true_mean": 27.871618405025274,
+  "y_pred_mean": 25.6469669342041,
+  "c_mean": 2.224652121429786,
+  "c_min": -16.09249075024424,
+  "c_max": 21.748160885620017,
+  "reduce_C_function": "np.mean",
+  "gridsize": 50,
+  "vmin": -10,
+  "vmax": 10,
+  "cmap": "pink_white_blue",
+  "metric_values": {
+    "mae": 4.33723758194155,
+    "mse": 27.544742727953118,
+    "r2": 0.3589826083702242,
+    "mre": 0.16381610982272213,
+    "acc": 83.6183890177278
+  }
+}

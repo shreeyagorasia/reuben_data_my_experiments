@@ -1,0 +1,27 @@
+{
+  "plot_type": "signed_error",
+  "table": "Table4.1",
+  "data_path_label": "purged",
+  "data_path": "purged",
+  "title": "(c) Chapman-Richards",
+  "filename": "spatial_signed_error_map.png",
+  "generated_at_utc": "2026-06-18T12:58:28.976285+00:00",
+  "n_test": 27660,
+  "y_true_mean": 27.871618405025274,
+  "y_pred_mean": 25.599178284706497,
+  "c_mean": 2.2724401203187714,
+  "c_min": -17.73396507840856,
+  "c_max": 24.544176241905934,
+  "reduce_C_function": "np.mean",
+  "gridsize": 50,
+  "vmin": -10,
+  "vmax": 10,
+  "cmap": "pink_white_blue",
+  "metric_values": {
+    "mae": 4.987242478909725,
+    "mse": 35.11212221632046,
+    "r2": 0.18287561368832583,
+    "mre": 0.1915283405507524,
+    "acc": 80.84716594492475
+  }
+}

@@ -1,7 +1,6 @@
 {
-  "model_name": "chapman_richards",
-  "method": "Chapman-Richards curve_fit",
-  "formula": "H(t) = y_max * (1 - exp(-k*t)) ** p",
+  "model_name": "avg_by_age",
+  "method": "AvgByAge nearest-age lookup",
   "data_paths": {
     "purged": "/home/s2887183/reuben_data_my_experiments/data/Aber_1223_conjoin_plot_purged_expanded_encoded.csv",
     "unseen": "/home/s2887183/reuben_data_my_experiments/data/Aber_1223_conjoin_expanded_encoded_duplicate_plots_removed.csv"
@@ -11,26 +10,6 @@
   ],
   "target_col": "TOP_HEIGHT",
   "random_seed": 42,
-  "curve_fit": {
-    "p0": [
-      46.1,
-      0.0187,
-      1.017
-    ],
-    "bounds": [
-      [
-        30,
-        0.001,
-        0.5
-      ],
-      [
-        100,
-        0.1,
-        3.0
-      ]
-    ],
-    "maxfev": 50000
-  },
   "tables_run": [
     "4.1",
     "4.3",
@@ -42,27 +21,27 @@
     "test_rows_2023_post_purge": 41492,
     "common_plot_count": 27660,
     "unique_2023_only_count": 13832,
-    "fitted_params": {
-      "y_max": 51.71757403066702,
-      "k": 0.012552071796756511,
-      "p": 0.8864792476902297
-    },
+    "age_lookup_unique_ages": 62,
+    "age_lookup_min": 20.0,
+    "age_lookup_max": 83.0,
+    "fallback_logic": "nearest AGE by np.abs(valid_ages - age).argmin()",
+    "unique_2023_rows_without_exact_age_match": 144,
+    "unique_2023_fraction_without_exact_age_match": 0.010410641989589358,
     "metrics": {
-      "mae": 4.762843738021865,
-      "mse": 33.25965679105602,
-      "r2": 0.42064751571349923,
-      "mre": 0.2026311719562072,
-      "acc": 79.73688280437928
+      "mae": 5.316973336959561,
+      "mse": 42.685102724437904,
+      "r2": 0.2564649581087154,
+      "mre": 0.22138262334372974,
+      "acc": 77.86173766562703
     }
   },
   "output_files": {
     "results": "results.csv",
-    "cr_params": "cr_params.json",
-    "cr_fit": "cr_fit.png",
     "spatial_error_map": "spatial_error_map.png (Table 4.1 temporal common plots)",
     "spatial_error_metadata": "spatial_error_map.json",
     "spatial_signed_error_map": "spatial_signed_error_map.png (Table 4.1 temporal common plots)",
     "spatial_signed_error_metadata": "spatial_signed_error_map.json",
+    "age_lookup": "table4_2_age_lookup.csv",
     "predictions": "table4_2_predictions.csv",
     "config_used": "config_used.json"
   }

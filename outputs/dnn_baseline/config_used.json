@@ -1,0 +1,107 @@
+{
+  "model_name": "dnn_baseline",
+  "architecture": {
+    "type": "DNN",
+    "input_features": 18,
+    "hidden_size": 128,
+    "hidden_layers": 3,
+    "activation": "LeakyReLU",
+    "output_size": 1
+  },
+  "training": {
+    "epochs_max": 1000,
+    "epochs_run_table4_1": 1000,
+    "batch_size": 512,
+    "learning_rate": 0.0001,
+    "optimizer": "Adam",
+    "scheduler": {
+      "type": "ReduceLROnPlateau",
+      "mode": "min",
+      "factor": 0.8,
+      "patience": 10
+    },
+    "lambda_l1": 1e-05,
+    "early_stop_patience": 50,
+    "val_split": 0.33,
+    "random_seed": 42,
+    "device": "cuda"
+  },
+  "data_paths": {
+    "purged": "/home/s2887183/reuben_data_my_experiments/data/Aber_1223_conjoin_plot_purged_expanded_encoded.csv",
+    "unseen": "/home/s2887183/reuben_data_my_experiments/data/Aber_1223_conjoin_expanded_encoded_duplicate_plots_removed.csv"
+  },
+  "feature_list": [
+    "X",
+    "Y",
+    "AGE",
+    "CULTIVATN_MOUNDING",
+    "CULTIVATN_NO CULTIVATION",
+    "PRILANDUSE_Dead High Forest",
+    "PRILANDUSE_Failed",
+    "PRILANDUSE_Felled",
+    "PRILANDUSE_High Forest",
+    "PRILANDUSE_Open",
+    "PRILANDUSE_Open Water",
+    "PRILANDUSE_Other Built Facility",
+    "PRILANDUSE_Partially Intruded Broadleaf",
+    "PRILANDUSE_Quarries",
+    "PRILANDUSE_Residential",
+    "PRILANDUSE_Unplantable or bare",
+    "PRILANDUSE_Unplanted streamsides",
+    "PRILANDUSE_Windblow"
+  ],
+  "target_col": "TOP_HEIGHT",
+  "tables_run": [
+    "4.1",
+    "4.3",
+    "4.4",
+    "4.2"
+  ],
+  "data_counts": {
+    "purged_2012_rows": 27660,
+    "purged_2023_rows": 27660,
+    "unseen_2012_rows": 31147,
+    "unseen_2023_rows": 41492
+  },
+  "final_metrics": {
+    "Table4.1": {
+      "mae": 5.344997607216985,
+      "mse": 43.971914252168915,
+      "r2": -0.023308224632238916,
+      "mre": 0.2086901706363635,
+      "acc": 79.13098293636365
+    },
+    "Table4.2": {
+      "mae": 5.330972051376374,
+      "mse": 48.043865390761916,
+      "r2": 0.1631202647782828,
+      "mre": 0.2469544817367275,
+      "acc": 75.30455182632724
+    },
+    "Table4.3": {
+      "mae": 2.9884820907687106,
+      "mse": 14.794760412055723,
+      "r2": 0.6752303864248562,
+      "mre": 0.16095252786291653,
+      "acc": 83.90474721370835
+    },
+    "Table4.4": {
+      "mae": 3.383218748615539,
+      "mse": 23.488044870611137,
+      "r2": 0.45404156108057175,
+      "mre": 0.13815612722455126,
+      "acc": 86.18438727754487
+    }
+  },
+  "checkpoint_basis": "Table4.1",
+  "output_files": {
+    "results": "results.csv",
+    "checkpoint": "checkpoint.pt",
+    "config_used": "config_used.json",
+    "training_curve": "training_curve.png",
+    "spatial_error_map": "spatial_error_map.png (Table 4.1 temporal common plots)",
+    "spatial_error_metadata": "spatial_error_map.json",
+    "spatial_signed_error_map": "spatial_signed_error_map.png (Table 4.1 temporal common plots)",
+    "spatial_signed_error_metadata": "spatial_signed_error_map.json"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "plot_type": "signed_error",
+  "table": "Table4.1",
+  "data_path_label": "purged",
+  "data_path": "purged",
+  "title": "(f) DNN Temporal Error (Common)",
+  "filename": "spatial_signed_error_map.png",
+  "generated_at_utc": "2026-06-18T13:46:31.549068+00:00",
+  "n_test": 27660,
+  "y_true_mean": 27.871618405025274,
+  "y_pred_mean": 26.272798538208008,
+  "c_mean": 1.5988190485398748,
+  "c_min": -22.961369009765626,
+  "c_max": 22.493289704345706,
+  "reduce_C_function": "np.mean",
+  "gridsize": 50,
+  "vmin": -10,
+  "vmax": 10,
+  "cmap": "pink_white_blue",
+  "metric_values": {
+    "mae": 5.344997607216985,
+    "mse": 43.971914252168915,
+    "r2": -0.023308224632238916,
+    "mre": 0.2086901706363635,
+    "acc": 79.13098293636365
+  }
+}

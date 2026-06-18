@@ -1,0 +1,27 @@
+{
+  "plot_type": "signed_error",
+  "table": "Table4.1",
+  "data_path_label": "purged",
+  "data_path": "purged",
+  "title": "(b) AvgByAge Baseline",
+  "filename": "spatial_signed_error_map.png",
+  "generated_at_utc": "2026-06-18T12:50:20.027599+00:00",
+  "n_test": 27660,
+  "y_true_mean": 27.871618405025274,
+  "y_pred_mean": 24.712656653259135,
+  "c_mean": 3.1589617517661353,
+  "c_min": -18.92553756250005,
+  "c_max": 27.608433823117267,
+  "reduce_C_function": "np.mean",
+  "gridsize": 50,
+  "vmin": -10,
+  "vmax": 10,
+  "cmap": "pink_white_blue",
+  "metric_values": {
+    "mae": 5.810031849795706,
+    "mse": 48.9848807753884,
+    "r2": -0.1399692788587683,
+    "mre": 0.21697216506896128,
+    "acc": 78.30278349310387
+  }
+}
