@@ -1,0 +1,35 @@
+{
+  "table": "Table4.1",
+  "data_path_label": "purged",
+  "metric": "relative_error_against_test_data",
+  "definition": "model relative error minus TestData relative error; TestData error is zero",
+  "test_data_control": "y_pred = y_true for observed 2023 Table 4.1 test data",
+  "vmin": 0.0,
+  "vmax": 0.4951649183849212,
+  "panels": {
+    "PINN - TestData": {
+      "mean": 0.1638161201854928,
+      "min": 1.475286096484735e-05,
+      "max": 1.2511523478758686,
+      "nonzero_error_fraction": 1.0
+    },
+    "DNN - TestData": {
+      "mean": 0.20869016873855728,
+      "min": 2.5257642453697013e-06,
+      "max": 1.8707492844571778,
+      "nonzero_error_fraction": 1.0
+    },
+    "Chapman-Richards - TestData": {
+      "mean": 0.19152834050272968,
+      "min": 1.363608487537417e-06,
+      "max": 1.0689102635598118,
+      "nonzero_error_fraction": 1.0
+    },
+    "AvgByAge - TestData": {
+      "mean": 0.21697216506896125,
+      "min": 2.252336556242109e-06,
+      "max": 1.3631383988007355,
+      "nonzero_error_fraction": 1.0
+    }
+  }
+}

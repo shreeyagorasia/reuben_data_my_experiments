@@ -6,6 +6,7 @@ import matplotlib.image as mpimg
 
 # Mapping of local model folder names to the display names
 MODEL_MAP = {
+    "test_data": "TestData",
     "pinn_baseline": "PINN",
     "dnn_baseline": "DNN",
     "chapman_richards": "CR",

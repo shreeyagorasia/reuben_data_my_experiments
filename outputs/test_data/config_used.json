@@ -1,0 +1,20 @@
+{
+  "model_name": "test_data",
+  "method": "Observed 2023 test-data control; y_pred = y_true",
+  "table": "Table4.1",
+  "data_path_label": "purged",
+  "n_test": 27660,
+  "metrics": {
+    "mae": 0.0,
+    "mse": 0.0,
+    "r2": 1.0,
+    "mre": 0.0,
+    "acc": 100.0
+  },
+  "outputs": {
+    "spatial_error_map": "spatial_error_map.png",
+    "spatial_error_metadata": "spatial_error_map.json",
+    "spatial_signed_error_map": "spatial_signed_error_map.png",
+    "spatial_signed_error_metadata": "spatial_signed_error_map.json"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "plot_type": "signed_relative_error",
+  "table": "Table4.1",
+  "data_path_label": "purged",
+  "data_path": "purged",
+  "title": "Test Data Control",
+  "filename": "spatial_signed_error_map.png",
+  "generated_at_utc": "2026-06-18T17:01:32.314141+00:00",
+  "n_test": 27660,
+  "y_true_mean": 27.87161840502527,
+  "y_pred_mean": 27.87161840502527,
+  "c_mean": 0.0,
+  "c_min": 0.0,
+  "c_max": 0.0,
+  "reduce_C_function": "np.mean",
+  "gridsize": 90,
+  "vmin": -1.0,
+  "vmax": 1.0,
+  "c_description": "(y_true - y_pred) / (abs(y_true) + 1e-8)",
+  "mean_signed_error_m": 0.0,
+  "min_signed_error_m": 0.0,
+  "max_signed_error_m": 0.0,
+  "cmap": "pink_white_blue",
+  "metric_values": {
+    "mae": 0.0,
+    "mse": 0.0,
+    "r2": 1.0,
+    "mre": 0.0,
+    "acc": 100.0
+  },
+  "control_type": "observed_test_data",
+  "short_name": "TestData"
+}

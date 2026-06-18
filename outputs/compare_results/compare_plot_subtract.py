@@ -1,34 +1,31 @@
 """
-Compare where PINN is spatially stronger/weaker than simple baselines.
+Compare each model's spatial relative error against the observed test data.
 
 This script uses Table 4.1 temporal common-plot data and plots:
 
-    PINN relative error - baseline relative error
+    model relative error - TestData relative error
 
 where:
 
     relative error = abs(y_true - y_pred) / (abs(y_true) + 1e-8)
+    TestData has y_pred = y_true, so its relative error is 0 everywhere.
 
 Interpretation:
-    negative / blue = PINN has lower relative error than the baseline
-    positive / red  = PINN has higher relative error than the baseline
+    zero / white = exact match to observed 2023 test height
+    positive / red = model error relative to observed 2023 test height
 
-The two panels are:
-    1. PINN - Chapman-Richards
-       Highlights where the learned PINN departs usefully from the traditional
-       Sitka spruce age-growth curve. Blue areas suggest extra features/learned
-       corrections help; red areas suggest the CR prior is still more reliable.
-
-    2. PINN - AvgByAge
-       Highlights where adding spatial/site/land-use features helps beyond a
-       simple age-cohort average. Blue areas suggest the extra feature set adds
-       value; red areas suggest the age-only baseline is locally stronger.
+The panels are:
+    1. PINN - TestData
+    2. DNN - TestData
+    3. Chapman-Richards - TestData
+    4. AvgByAge - TestData
 
 The script prints summary statistics to the terminal:
-    mean, min, max, and the fraction of plots where PINN is worse.
+    mean, min, max, and the fraction of plots with non-zero model error.
 
-It writes one output figure:
+It writes:
     outputs/compare_results/compare_plot_subtract.png
+    outputs/compare_results/compare_plot_subtract.json
 
 Usage from repo root:
 
@@ -53,6 +50,7 @@ matplotlib.use("Agg")
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import torch
+import torch.nn as nn
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -75,14 +73,14 @@ OUTPUT_DIR = PROJECT_ROOT / "outputs" / "compare_results"
 PINN_CHECKPOINT = PROJECT_ROOT / "outputs" / "pinn_baseline" / "checkpoint.pt"
 CR_PARAMS = PROJECT_ROOT / "outputs" / "chapman_richards" / "cr_params.json"
 
-PINK_WHITE_BLUE = mcolors.LinearSegmentedColormap.from_list(
-    "pink_white_blue", ["#3b6fb6", "#ffffff", "#d94b62"]
+ERROR_CMAP = mcolors.LinearSegmentedColormap.from_list(
+    "white_red_error", ["#ffffff", "#d94b62"]
 )
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Plot spatial differences in relative error: PINN minus CR and AvgByAge."
+        description="Plot each model's spatial relative error against observed 2023 test data."
     )
     parser.add_argument(
         "--vmax",
@@ -143,6 +141,36 @@ def predict_pinn(X_train, X_test):
     return scaler_y.inverse_transform(y_pred_scaled).ravel()
 
 
+def predict_dnn(X_test):
+    checkpoint = torch.load(
+        PROJECT_ROOT / "outputs" / "dnn_baseline" / "checkpoint.pt",
+        map_location="cpu",
+        weights_only=False,
+    )
+    saved_features = checkpoint.get("feature_list")
+    if saved_features is not None and list(saved_features) != list(common_config.FEATURES):
+        raise ValueError(
+            "DNN checkpoint feature list does not match common_config.FEATURES. "
+            "Retrain DNN before using this comparison script."
+        )
+
+    state = checkpoint["model_state"]
+    hidden_size = state["net.0.weight"].shape[0]
+    model = nn.Sequential(
+        nn.Linear(X_test.shape[1], hidden_size), nn.LeakyReLU(),
+        nn.Linear(hidden_size, hidden_size), nn.LeakyReLU(),
+        nn.Linear(hidden_size, hidden_size), nn.LeakyReLU(),
+        nn.Linear(hidden_size, 1),
+    )
+    model.load_state_dict({key.replace("net.", ""): value for key, value in state.items()})
+    model.eval()
+
+    Xte = torch.tensor(checkpoint["scaler_X"].transform(X_test), dtype=torch.float32)
+    with torch.no_grad():
+        y_pred_scaled = model(Xte).numpy().reshape(-1, 1)
+    return checkpoint["scaler_y"].inverse_transform(y_pred_scaled).ravel()
+
+
 def relative_error(y_true, y_pred):
     return np.abs(y_true - y_pred) / (np.abs(y_true) + 1e-8)
 
@@ -150,34 +178,36 @@ def relative_error(y_true, y_pred):
 def robust_symmetric_limit(values, user_vmax=None):
     if user_vmax is not None:
         return float(user_vmax)
-    robust = float(np.percentile(np.abs(values), 95))
+    robust = float(np.percentile(values, 95))
     return max(0.05, robust)
 
 
 def describe(name, diff):
     print(
         f"{name}: mean={diff.mean():+.4f}, min={diff.min():+.4f}, "
-        f"max={diff.max():+.4f}, PINN worse={(diff > 0).mean() * 100:.1f}% of plots"
+        f"max={diff.max():+.4f}, non-zero error={(diff > 0).mean() * 100:.1f}% of plots"
     )
 
 
-def plot_difference_maps(x, y, diff_cr, diff_avg, vmax):
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5.4), sharex=True, sharey=True)
+def plot_difference_maps(x, y, panels, vmax):
+    fig, axes = plt.subplots(2, 2, figsize=(13, 10.2), sharex=True, sharey=True)
     panels = [
-        ("PINN - Chapman-Richards", diff_cr),
-        ("PINN - AvgByAge", diff_avg),
+        ("PINN - TestData", panels["PINN - TestData"]),
+        ("DNN - TestData", panels["DNN - TestData"]),
+        ("Chapman-Richards - TestData", panels["Chapman-Richards - TestData"]),
+        ("AvgByAge - TestData", panels["AvgByAge - TestData"]),
     ]
 
     hb = None
-    for ax, (title, diff) in zip(axes, panels):
+    for ax, (title, diff) in zip(axes.flatten(), panels):
         hb = ax.hexbin(
             x,
             y,
             C=diff,
             reduce_C_function=REDUCE_C_FUNCTION,
             gridsize=GRID_SIZE,
-            cmap=PINK_WHITE_BLUE,
-            vmin=-vmax,
+            cmap=ERROR_CMAP,
+            vmin=0,
             vmax=vmax,
             linewidths=0.2,
         )
@@ -186,11 +216,11 @@ def plot_difference_maps(x, y, diff_cr, diff_avg, vmax):
         ax.set_ylabel("Northing (OS National Grid)", fontsize=9)
         ax.tick_params(labelsize=8)
 
-    fig.suptitle("Where PINN Improves or Worsens Relative Error", fontsize=15, fontweight="bold", y=1.03)
+    fig.suptitle("Spatial Relative Error Differences", fontsize=15, fontweight="bold", y=1.02)
     fig.text(
         0.5,
-        0.97,
-        "Colour = PINN relative error minus baseline relative error; blue = PINN better, red = PINN worse.",
+        0.985,
+        "Colour = model relative error against observed 2023 test height; white = exact match, red = larger relative error.",
         ha="center",
         va="top",
         fontsize=10,
@@ -198,15 +228,15 @@ def plot_difference_maps(x, y, diff_cr, diff_avg, vmax):
     )
     fig.text(
         0.5,
-        0.93,
-        "Each panel is a Table 4.1 spatial hexbin map over OS National Grid coordinates.",
+        0.96,
+        "TestData is the observed 2023 control with y_pred = y_true, so TestData error is zero everywhere.",
         ha="center",
         va="top",
         fontsize=10,
         color="dimgray",
     )
     cbar = fig.colorbar(hb, ax=axes, fraction=0.035, pad=0.04)
-    cbar.set_label("Relative error difference (PINN - baseline)", fontsize=9)
+    cbar.set_label("Relative error vs TestData", fontsize=9)
     cbar.ax.tick_params(labelsize=8)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -214,6 +244,32 @@ def plot_difference_maps(x, y, diff_cr, diff_avg, vmax):
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"Saved subtractive comparison plot to {output_path}")
+
+
+def write_summary_json(panels, vmax):
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    summary = {
+        "table": "Table4.1",
+        "data_path_label": "purged",
+        "metric": "relative_error_against_test_data",
+        "definition": "model relative error minus TestData relative error; TestData error is zero",
+        "test_data_control": "y_pred = y_true for observed 2023 Table 4.1 test data",
+        "vmin": 0.0,
+        "vmax": float(vmax),
+        "panels": {
+            name: {
+                "mean": float(values.mean()),
+                "min": float(values.min()),
+                "max": float(values.max()),
+                "nonzero_error_fraction": float((values > 0).mean()),
+            }
+            for name, values in panels.items()
+        },
+    }
+    output_path = OUTPUT_DIR / "compare_plot_subtract.json"
+    with open(output_path, "w") as f:
+        json.dump(summary, f, indent=2)
+    print(f"Saved subtractive comparison summary to {output_path}")
 
 
 def main():
@@ -224,23 +280,31 @@ def main():
 
     print("\nGenerating Table 4.1 predictions...")
     y_pred_pinn = predict_pinn(X_train, X_test)
+    y_pred_dnn = predict_dnn(X_test)
     y_pred_cr = predict_cr(df23)
     y_pred_avg = predict_avg_by_age(df12, df23)
 
     rel_pinn = relative_error(y_true, y_pred_pinn)
+    rel_dnn = relative_error(y_true, y_pred_dnn)
     rel_cr = relative_error(y_true, y_pred_cr)
     rel_avg = relative_error(y_true, y_pred_avg)
+    rel_test = np.zeros_like(rel_pinn)
 
-    diff_cr = rel_pinn - rel_cr
-    diff_avg = rel_pinn - rel_avg
+    panels = {
+        "PINN - TestData": rel_pinn - rel_test,
+        "DNN - TestData": rel_dnn - rel_test,
+        "Chapman-Richards - TestData": rel_cr - rel_test,
+        "AvgByAge - TestData": rel_avg - rel_test,
+    }
 
-    describe("PINN - Chapman-Richards relative error", diff_cr)
-    describe("PINN - AvgByAge relative error", diff_avg)
+    for name, diff in panels.items():
+        describe(f"{name} relative error", diff)
 
-    vmax = robust_symmetric_limit(np.concatenate([diff_cr, diff_avg]), args.vmax)
-    print(f"Using symmetric colour scale: vmin={-vmax:.4f}, vmax={vmax:.4f}, gridsize={GRID_SIZE}")
+    vmax = robust_symmetric_limit(np.concatenate(list(panels.values())), args.vmax)
+    print(f"Using colour scale: vmin=0.0000, vmax={vmax:.4f}, gridsize={GRID_SIZE}")
 
-    plot_difference_maps(x_coords, y_coords, diff_cr, diff_avg, vmax)
+    plot_difference_maps(x_coords, y_coords, panels, vmax)
+    write_summary_json(panels, vmax)
 
 
 if __name__ == "__main__":
