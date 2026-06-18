@@ -72,6 +72,11 @@ def main():
             print(f"    Reading {results_csv_path}")
             # Use pandas to read the CSV file. It's like a spreadsheet in Python.
             df = pd.read_csv(results_csv_path)
+
+            if 'Metric' not in df.columns or 'Value' not in df.columns:
+                print(f"      WARNING: Skipping {results_csv_path}. Missing 'Metric' or 'Value' columns (this is likely an un-pulled Git LFS pointer).")
+                continue
+
             # Get the nice display name for our model, like "PINN".
             model_display_name = MODEL_MAP[model_folder_name]
 

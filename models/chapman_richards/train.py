@@ -17,7 +17,6 @@ Run with (from this folder):
 
 import os
 import json
-import csv
 
 import config  # this model's config (also pulls in common settings)
 
@@ -28,6 +27,69 @@ from scipy.optimize import curve_fit
 from common.data_utils import load_data, get_kfold_splits
 from common.metrics import reuben_metrics
 from model import chapman_richards
+from plots import plot_cr_fit, plot_spatial_error, plot_spatial_signed_error
+
+
+def save_table_4_2_artifacts(df_train, df_test, common_ids, metrics, params, y_pred):
+    """Save CR run details and plot-source predictions for Table 4.2."""
+    common_id_set = set(common_ids)
+    predictions = pd.DataFrame({
+        "PLOT_ID": df_test.index.values,
+        "X": df_test["X"].values,
+        "Y": df_test["Y"].values,
+        "AGE": df_test[config.AGE_COL].values,
+        "is_common_2023_plot": [plot_id in common_id_set for plot_id in df_test.index.values],
+        "y_true": df_test[config.TARGET_COL].values,
+        "y_pred": y_pred,
+    })
+    predictions["abs_error"] = np.abs(predictions["y_true"] - predictions["y_pred"])
+    predictions["signed_error_actual_minus_pred"] = predictions["y_true"] - predictions["y_pred"]
+
+    predictions_path = os.path.join(config.OUTPUT_DIR, "table4_2_predictions.csv")
+    config_path = os.path.join(config.OUTPUT_DIR, "config_used.json")
+    predictions.to_csv(predictions_path, index=False)
+
+    only_2023_mask = ~predictions["is_common_2023_plot"]
+    config_used = {
+        "model_name": config.MODEL_NAME,
+        "method": "Chapman-Richards curve_fit",
+        "formula": "H(t) = y_max * (1 - exp(-k*t)) ** p",
+        "data_paths": {
+            "purged": config.DATA_PATH_PURGED,
+            "unseen": config.DATA_PATH_UNSEEN,
+        },
+        "features_used": [config.AGE_COL],
+        "target_col": config.TARGET_COL,
+        "random_seed": config.RANDOM_SEED,
+        "curve_fit": {
+            "p0": config.CR_P0,
+            "bounds": config.CR_BOUNDS,
+            "maxfev": 50_000,
+        },
+        "tables_run": ["4.1", "4.3", "4.4", "4.2"],
+        "table4_2": {
+            "train_rows_2012_post_purge": int(len(df_train)),
+            "test_rows_2023_post_purge": int(len(df_test)),
+            "common_plot_count": int(len(common_ids)),
+            "unique_2023_only_count": int(only_2023_mask.sum()),
+            "fitted_params": params,
+            "metrics": metrics,
+        },
+        "output_files": {
+            "results": "results.csv",
+            "cr_params": "cr_params.json",
+            "cr_fit": "cr_fit.png",
+            "spatial_error_map": "spatial_error_map.png",
+            "spatial_signed_error_map": "spatial_signed_error_map.png",
+            "predictions": "table4_2_predictions.csv",
+            "config_used": "config_used.json",
+        },
+    }
+    with open(config_path, "w") as f:
+        json.dump(config_used, f, indent=2)
+
+    print(f"Saved Table 4.2 predictions to {predictions_path}")
+    print(f"Saved run details to {config_path}")
 
 def run_cr(df_train, df_test, run_name=""):
     """Fits the CR model to the training set and evaluates it on the test set."""
@@ -89,12 +151,48 @@ def main():
 
     # --- Experiment using UNSEEN data (Table 4.2) ---
     print("\n\n--- Loading UNSEEN data for Table 4.2 ---")
-    df12_unseen, df23_unseen, _ = load_data(config.DATA_PATH_UNSEEN)
+    df12_unseen, df23_unseen, common_ids_unseen = load_data(config.DATA_PATH_UNSEEN)
     print(f"\n--- Running Experiment for Table 4.2: Temporal (Unseen Plots) ---")
     metrics_t2, params_t2, y_pred_t2 = run_cr(df12_unseen, df23_unseen, "Temporal (Table 4.2)")
     for k, v in metrics_t2.items():
         all_results[f"Table4.2_{k}"] = v
     all_cr_params["Table4.2"] = params_t2  # Save these for the PINN's unseen run
+
+    X_coords_unseen = df23_unseen["X"].values
+    Y_coords_unseen = df23_unseen["Y"].values
+    y_test_unseen = df23_unseen[config.TARGET_COL].values
+    plot_cr_fit(
+        df12_unseen[config.AGE_COL].values,
+        df12_unseen[config.TARGET_COL].values,
+        params_t2["y_max"],
+        params_t2["k"],
+        params_t2["p"],
+        config.OUTPUT_DIR,
+    )
+    plot_spatial_error(
+        X_coords_unseen,
+        Y_coords_unseen,
+        y_test_unseen,
+        y_pred_t2,
+        "(c) Chapman-Richards",
+        config.OUTPUT_DIR,
+    )
+    plot_spatial_signed_error(
+        X_coords_unseen,
+        Y_coords_unseen,
+        y_test_unseen,
+        y_pred_t2,
+        "(c) Chapman-Richards",
+        config.OUTPUT_DIR,
+    )
+    save_table_4_2_artifacts(
+        df12_unseen,
+        df23_unseen,
+        common_ids_unseen,
+        metrics_t2,
+        params_t2,
+        y_pred_t2,
+    )
 
     # ------------------------------------------------------------
     # Save Outputs

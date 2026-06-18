@@ -5,6 +5,7 @@ Trains the Deep Neural Network (DNN) baseline.
 """
 
 import os
+import json
 import numpy as np
 import torch
 import torch.nn as nn
@@ -211,6 +212,65 @@ def main():
     ckpt_path = os.path.join(config.OUTPUT_DIR, "checkpoint.pt")
     torch.save(checkpoint, ckpt_path)
     print(f"\nSaved checkpoint to {ckpt_path}")
+
+    config_used = {
+        "model_name": config.MODEL_NAME,
+        "architecture": {
+            "type": "DNN",
+            "input_features": len(config.FEATURES),
+            "hidden_size": config.HIDDEN_SIZE,
+            "hidden_layers": 3,
+            "activation": "LeakyReLU",
+            "output_size": 1,
+        },
+        "training": {
+            "epochs_max": config.EPOCHS,
+            "epochs_run_table4_1": ep_log_t1[-1] if ep_log_t1 else 0,
+            "batch_size": config.BATCH_SIZE,
+            "learning_rate": config.LEARNING_RATE,
+            "optimizer": "Adam",
+            "scheduler": {
+                "type": "ReduceLROnPlateau",
+                "mode": "min",
+                "factor": 0.8,
+                "patience": 10,
+            },
+            "lambda_l1": config.LAMBDA_L1,
+            "early_stop_patience": config.EARLY_STOP_PATIENCE,
+            "val_split": config.VAL_SPLIT,
+            "random_seed": config.RANDOM_SEED,
+            "device": str(device),
+        },
+        "data_paths": {
+            "purged": config.DATA_PATH_PURGED,
+            "unseen": config.DATA_PATH_UNSEEN,
+        },
+        "feature_list": config.FEATURES,
+        "target_col": config.TARGET_COL,
+        "tables_run": ["4.1", "4.3", "4.4", "4.2"],
+        "data_counts": {
+            "purged_2012_rows": int(len(df12_purged)),
+            "purged_2023_rows": int(len(df23_purged)),
+            "unseen_2012_rows": int(len(df12_unseen)),
+            "unseen_2023_rows": int(len(df23_unseen)),
+        },
+        "final_metrics": {
+            "Table4.1": metrics_t1,
+            "Table4.2": metrics_t2,
+            "Table4.3": {k: all_results[f"Table4.3_{k}"] for k in metrics_t1.keys()},
+            "Table4.4": {k: all_results[f"Table4.4_{k}"] for k in metrics_t1.keys()},
+        },
+        "checkpoint_basis": "Table4.1",
+        "output_files": {
+            "results": "results.csv",
+            "checkpoint": "checkpoint.pt",
+            "config_used": "config_used.json",
+        },
+    }
+    config_path = os.path.join(config.OUTPUT_DIR, "config_used.json")
+    with open(config_path, "w") as f:
+        json.dump(config_used, f, indent=2)
+    print(f"Saved run details to {config_path}")
 
     # --- Save ALL metrics to the results CSV ---
     results_df = pd.DataFrame(list(all_results.items()), columns=["Metric", "Value"])

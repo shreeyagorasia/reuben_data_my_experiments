@@ -1,0 +1,67 @@
+{
+  "model_name": "chapman_richards",
+  "method": "Chapman-Richards curve_fit",
+  "formula": "H(t) = y_max * (1 - exp(-k*t)) ** p",
+  "data_paths": {
+    "purged": "/Users/shreeyagorasia/UoE_Docs/Dissertation/reuben_diss/Reuben_data_my_experiments/data/Aber_1223_conjoin_plot_purged_expanded_encoded.csv",
+    "unseen": "/Users/shreeyagorasia/UoE_Docs/Dissertation/reuben_diss/Reuben_data_my_experiments/data/Aber_1223_conjoin_expanded_encoded_duplicate_plots_removed.csv"
+  },
+  "features_used": [
+    "AGE"
+  ],
+  "target_col": "TOP_HEIGHT",
+  "random_seed": 42,
+  "curve_fit": {
+    "p0": [
+      46.1,
+      0.0187,
+      1.017
+    ],
+    "bounds": [
+      [
+        30,
+        0.001,
+        0.5
+      ],
+      [
+        100,
+        0.1,
+        3.0
+      ]
+    ],
+    "maxfev": 50000
+  },
+  "tables_run": [
+    "4.1",
+    "4.3",
+    "4.4",
+    "4.2"
+  ],
+  "table4_2": {
+    "train_rows_2012_post_purge": 31147,
+    "test_rows_2023_post_purge": 41492,
+    "common_plot_count": 27660,
+    "unique_2023_only_count": 13832,
+    "fitted_params": {
+      "y_max": 51.71757313297769,
+      "k": 0.012552072275439351,
+      "p": 0.8864792565903341
+    },
+    "metrics": {
+      "mae": 4.7628437380822595,
+      "mse": 33.25965678514139,
+      "r2": 0.4206475158165266,
+      "mre": 0.20263117194609329,
+      "acc": 79.73688280539068
+    }
+  },
+  "output_files": {
+    "results": "results.csv",
+    "cr_params": "cr_params.json",
+    "cr_fit": "cr_fit.png",
+    "spatial_error_map": "spatial_error_map.png",
+    "spatial_signed_error_map": "spatial_signed_error_map.png",
+    "predictions": "table4_2_predictions.csv",
+    "config_used": "config_used.json"
+  }
+}
