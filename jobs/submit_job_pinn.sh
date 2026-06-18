@@ -5,7 +5,7 @@
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --time=02:00:00
 #SBATCH --partition=Teaching
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:nvidia_rtx_a6000:1
 #SBATCH --mem=8G
 
 # --- How to run ---------------------------------------------------
