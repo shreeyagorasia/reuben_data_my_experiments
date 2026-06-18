@@ -518,4 +518,4 @@ Table 4.4 is a 3-fold cross-validation experiment within 2023 purged data. It us
 
 4. Plotting functions now centralize metric/title logic through `common/spatial_plots.py` and `common.metrics.reuben_metrics()`.
 
-5. `outputs/compare_results/compare_results.py` now defaults to Table 4.1 only and supports `--table 4.2`, `--table 4.3`, `--table 4.4`, and `--table all`.
+5. `analysis/model_comparison/compare_results.py` now defaults to Table 4.1 only and supports `--table 4.2`, `--table 4.3`, `--table 4.4`, and `--table all`.

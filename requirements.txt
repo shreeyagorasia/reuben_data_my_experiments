@@ -4,3 +4,5 @@ matplotlib
 torch
 scipy
 scikit-learn
+rasterio
+pyproj

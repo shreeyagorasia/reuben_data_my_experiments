@@ -4,14 +4,14 @@ Compare saved model metrics against Reuben's original dissertation tables.
 Default usage prints/validates Table 4.1 only, which is the main temporal
 common-plot experiment:
 
-    python outputs/compare_results/compare_results.py
+    python analysis/model_comparison/compare_results.py
 
 Other options:
 
-    python outputs/compare_results/compare_results.py --table 4.2
-    python outputs/compare_results/compare_results.py --table 4.3
-    python outputs/compare_results/compare_results.py --table 4.4
-    python outputs/compare_results/compare_results.py --table all
+    python analysis/model_comparison/compare_results.py --table 4.2
+    python analysis/model_comparison/compare_results.py --table 4.3
+    python analysis/model_comparison/compare_results.py --table 4.4
+    python analysis/model_comparison/compare_results.py --table all
 """
 
 import os
@@ -107,9 +107,9 @@ def main():
     tables_to_print = selected_tables(args.table)
     import pandas as pd
 
-    # This script is in the 'outputs/compare_results' folder.
-    # We need to go up one level to find the main 'outputs' folder where all the model results are.
-    outputs_dir = os.path.join(os.path.dirname(__file__), '..')
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    outputs_dir = os.path.join(project_root, "outputs")
+    comparison_outputs_dir = os.path.join(outputs_dir, "analysis", "model_comparison")
     
     # We'll put all the results we find into this dictionary.
     # It will look like this: { '4.1': {'PINN': {'MAE': 4.04, ...}}, ... }
@@ -232,8 +232,8 @@ def main():
 
     # Define where we want to save the output file.
     summary_name = "comparison_summary_all.txt" if args.table == "all" else f"comparison_summary_table_{args.table}.txt"
-    summary_file_path = os.path.join(outputs_dir, "compare_results", summary_name)
-    # Make sure the 'compare_results' folder exists.
+    summary_file_path = os.path.join(comparison_outputs_dir, summary_name)
+    # Make sure the model-comparison output folder exists.
     os.makedirs(os.path.dirname(summary_file_path), exist_ok=True)
 
     # Write the big string to the file.
