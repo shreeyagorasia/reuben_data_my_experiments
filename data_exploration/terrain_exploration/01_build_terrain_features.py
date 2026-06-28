@@ -19,7 +19,7 @@ from scipy.ndimage import uniform_filter
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT = PROJECT_ROOT / "data" / "Aber_1223_conjoin_plot_purged_expanded_encoded.csv"
-OUTPUT_DIR = PROJECT_ROOT / "data_exploration" / "terrain_exploration"
+OUTPUT_DIR = PROJECT_ROOT / "data_exploration" / "terrain_exploration_output"
 DEFAULT_OUTPUT = OUTPUT_DIR / "terrain_augmented_purged.csv"
 DEFAULT_TILE_DIR = OUTPUT_DIR / "dem_tiles"
 BASE_URL = "https://copernicus-dem-30m.s3.amazonaws.com"

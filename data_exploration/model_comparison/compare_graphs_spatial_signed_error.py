@@ -66,7 +66,7 @@ def assert_comparable(plot_data):
 def main():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     model_outputs_dir = os.path.join(project_root, "outputs")
-    comparison_outputs_dir = os.path.join(project_root, "data_exploration", "model_comparison")
+    comparison_outputs_dir = os.path.join(project_root, "data_exploration", "model_comparison_output")
     
     # Look for this specific plot in each model's directory
     target_filename = "spatial_signed_error_map.png"
