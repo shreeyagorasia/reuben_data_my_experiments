@@ -13,8 +13,8 @@ import pandas as pd
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-TERRAIN_OUTPUT_DIR = PROJECT_ROOT / "outputs" / "analysis" / "terrain_exploration"
-OUTPUT_DIR = PROJECT_ROOT / "outputs" / "analysis" / "residual_feature_importance"
+TERRAIN_OUTPUT_DIR = PROJECT_ROOT / "data_exploration" / "terrain_exploration"
+OUTPUT_DIR = PROJECT_ROOT / "data_exploration" / "residual_feature_importance"
 DEFAULT_TERRAIN_CSV = TERRAIN_OUTPUT_DIR / "terrain_augmented_purged.csv"
 DEFAULT_RESIDUAL_CSV = TERRAIN_OUTPUT_DIR / "terrain_residual_table.csv"
 DEFAULT_OUTPUT = OUTPUT_DIR / "residual_feature_table.csv"

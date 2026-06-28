@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_DIR = PROJECT_ROOT / "outputs" / "analysis" / "terrain_exploration"
+OUTPUT_DIR = PROJECT_ROOT / "data_exploration" / "terrain_exploration"
 DEFAULT_TABLE = OUTPUT_DIR / "terrain_residual_table.csv"
 GRID_SIZE = 90
 

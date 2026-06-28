@@ -70,7 +70,7 @@ import config as pinn_config  # noqa: E402
 from model import PINN  # noqa: E402
 
 
-OUTPUT_DIR = PROJECT_ROOT / "outputs" / "analysis" / "model_comparison"
+OUTPUT_DIR = PROJECT_ROOT / "data_exploration" / "model_comparison"
 PINN_CHECKPOINT = PROJECT_ROOT / "outputs" / "pinn_baseline" / "checkpoint.pt"
 CR_PARAMS = PROJECT_ROOT / "outputs" / "chapman_richards" / "cr_params.json"
 

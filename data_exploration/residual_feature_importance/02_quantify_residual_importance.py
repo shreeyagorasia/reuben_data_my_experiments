@@ -31,7 +31,7 @@ from sklearn.preprocessing import StandardScaler
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_DIR = PROJECT_ROOT / "outputs" / "analysis" / "residual_feature_importance"
+OUTPUT_DIR = PROJECT_ROOT / "data_exploration" / "residual_feature_importance"
 DEFAULT_INPUT = OUTPUT_DIR / "residual_feature_table.csv"
 
 FEATURE_GROUPS = {

@@ -109,7 +109,7 @@ def main():
 
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     outputs_dir = os.path.join(project_root, "outputs")
-    comparison_outputs_dir = os.path.join(outputs_dir, "analysis", "model_comparison")
+    comparison_outputs_dir = os.path.join(project_root, "data_exploration", "model_comparison")
     
     # We'll put all the results we find into this dictionary.
     # It will look like this: { '4.1': {'PINN': {'MAE': 4.04, ...}}, ... }

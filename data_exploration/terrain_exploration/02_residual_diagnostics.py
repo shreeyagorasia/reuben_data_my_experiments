@@ -33,7 +33,7 @@ import config as pinn_config  # noqa: E402
 from model import PINN  # noqa: E402
 
 
-OUTPUT_DIR = PROJECT_ROOT / "outputs" / "analysis" / "terrain_exploration"
+OUTPUT_DIR = PROJECT_ROOT / "data_exploration" / "terrain_exploration"
 DEFAULT_INPUT = OUTPUT_DIR / "terrain_augmented_purged.csv"
 DEFAULT_TABLE = OUTPUT_DIR / "terrain_residual_table.csv"
 TERRAIN_COLS = ["DEM_ELEVATION", "DEM_RUGGEDNESS"]
