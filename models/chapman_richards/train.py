@@ -1,212 +1,102 @@
 """
 models/chapman_richards/train.py
 ==================================
-Fits the Chapman-Richards growth curve to the 2012 data, evaluates it
-on the 2023 data, and saves everything into outputs/chapman_richards/:
+Table 4.1: Fits the Chapman-Richards growth curve to 2012 data,
+then predicts 2023 tree heights using only tree AGE.
 
-  - cr_params.json   : fitted y_max, k, p
-                        (the PINN baseline loads this as its physics prior)
-                     - Reuben's params:   y_max=46.1126        k=0.0186698      p=1.0175
-  - results.json     : evaluation metrics (MAE, MSE, R^2, MRE, Acc)
-                     - Reuben: MAE=4.5605  MSE=31.0275  R²=0.2779  Acc=81.57%
-  - cr_fit.png       : plot of the fitted curve vs 2012 data
+This is the simplest model in the project — no neural network, just a
+mathematical formula:
+    H(t) = y_max * (1 - exp(-k * t)) ^ p
+where H is height, t is age, and y_max / k / p are learned from the data.
 
-Run with (from this folder):
+IMPORTANT: Run this FIRST. The PINN needs the fitted parameters saved here
+as its "physics prior" (outputs/chapman_richards/cr_params.json).
+
+Run with:
     python train.py
 """
 
 import os
 import json
-
-import config  # this model's config (also pulls in common settings)
-
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 
-from common.data_utils import load_data, get_kfold_splits
+import config
+from common.data_utils import load_data
 from common.metrics import reuben_metrics
 from model import chapman_richards
 from plots import plot_cr_fit, plot_spatial_error, plot_spatial_signed_error
 
 
-def save_table_4_2_artifacts(df_train, df_test, common_ids, metrics, params, y_pred):
-    """Save CR run details and plot-source predictions for Table 4.2."""
-    common_id_set = set(common_ids)
-    predictions = pd.DataFrame({
-        "PLOT_ID": df_test.index.values,
-        "X": df_test["X"].values,
-        "Y": df_test["Y"].values,
-        "AGE": df_test[config.AGE_COL].values,
-        "is_common_2023_plot": [plot_id in common_id_set for plot_id in df_test.index.values],
-        "y_true": df_test[config.TARGET_COL].values,
-        "y_pred": y_pred,
-    })
-    predictions["abs_error"] = np.abs(predictions["y_true"] - predictions["y_pred"])
-    predictions["signed_error_actual_minus_pred"] = predictions["y_true"] - predictions["y_pred"]
-
-    predictions_path = os.path.join(config.OUTPUT_DIR, "table4_2_predictions.csv")
-    config_path = os.path.join(config.OUTPUT_DIR, "config_used.json")
-    predictions.to_csv(predictions_path, index=False)
-
-    only_2023_mask = ~predictions["is_common_2023_plot"]
-    config_used = {
-        "model_name": config.MODEL_NAME,
-        "method": "Chapman-Richards curve_fit",
-        "formula": "H(t) = y_max * (1 - exp(-k*t)) ** p",
-        "data_paths": {
-            "purged": config.DATA_PATH_PURGED,
-            "unseen": config.DATA_PATH_UNSEEN,
-        },
-        "features_used": [config.AGE_COL],
-        "target_col": config.TARGET_COL,
-        "random_seed": config.RANDOM_SEED,
-        "curve_fit": {
-            "p0": config.CR_P0,
-            "bounds": config.CR_BOUNDS,
-            "maxfev": 50_000,
-        },
-        "tables_run": ["4.1", "4.3", "4.4", "4.2"],
-        "table4_2": {
-            "train_rows_2012_post_purge": int(len(df_train)),
-            "test_rows_2023_post_purge": int(len(df_test)),
-            "common_plot_count": int(len(common_ids)),
-            "unique_2023_only_count": int(only_2023_mask.sum()),
-            "fitted_params": params,
-            "metrics": metrics,
-        },
-        "output_files": {
-            "results": "results.csv",
-            "cr_params": "cr_params.json",
-            "cr_fit": "cr_fit.png",
-            "spatial_error_map": "spatial_error_map.png (Table 4.1 temporal common plots)",
-            "spatial_error_metadata": "spatial_error_map.json",
-            "spatial_signed_error_map": "spatial_signed_error_map.png (Table 4.1 temporal common plots)",
-            "spatial_signed_error_metadata": "spatial_signed_error_map.json",
-            "predictions": "table4_2_predictions.csv",
-            "config_used": "config_used.json",
-        },
-    }
-    with open(config_path, "w") as f:
-        json.dump(config_used, f, indent=2)
-
-    print(f"Saved Table 4.2 predictions to {predictions_path}")
-    print(f"Saved run details to {config_path}")
-
-def run_cr(df_train, df_test, run_name=""):
-    """Fits the CR model to the training set and evaluates it on the test set."""
-    ages_train = df_train[config.AGE_COL].values
-    y_train = df_train[config.TARGET_COL].values
-    ages_test = df_test[config.AGE_COL].values
-    y_test = df_test[config.TARGET_COL].values
-
-    popt, _ = curve_fit(
-        chapman_richards,
-        ages_train, y_train,
-        p0=config.CR_P0, bounds=config.CR_BOUNDS, maxfev=50_000
-    )
-    cr_ymax, cr_k, cr_p = popt
-
-    y_pred = chapman_richards(ages_test, cr_ymax, cr_k, cr_p)
-    
-    if run_name:
-        print(f"\n--- {run_name} ---")
-        print(f"Fitted CR params: y_max={cr_ymax:.4f}  k={cr_k:.7f}  p={cr_p:.4f}")
-        
-    metrics = reuben_metrics(y_test, y_pred, label=run_name)
-    params = {"y_max": float(cr_ymax), "k": float(cr_k), "p": float(cr_p)}
-    return metrics, params, y_pred
-
 def main():
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
-    all_results = {}
-    all_cr_params = {}
 
-    # --- Experiments using PURGED data (Tables 4.1, 4.3, 4.4) ---
-    print("\n\n--- Loading PURGED data for Tables 4.1, 4.3, 4.4 ---")
-    df12_purged, df23_purged, _ = load_data(config.DATA_PATH_PURGED)
+    # ------------------------------------------------------------------ #
+    # 1. LOAD DATA                                                         #
+    # ------------------------------------------------------------------ #
+    # "Purged" means: only plots that appear in BOTH 2012 and 2023,
+    # with "shrinking" plots (possible sensor noise) removed.
+    # df12 = 2012 measurements (used for training)
+    # df23 = 2023 measurements (used for testing)
+    df12, df23, _ = load_data(config.DATA_PATH_PURGED)
 
-    # --- Experiment for Table 4.1 (Temporal, Common Plots) ---
-    print("\n--- Running Experiment for Table 4.1: Temporal (Common Plots) ---")
-    metrics_t1, params_t1, y_pred_t1 = run_cr(df12_purged, df23_purged, "Temporal (Table 4.1)")
-    for k, v in metrics_t1.items():
-        all_results[f"Table4.1_{k}"] = v
-    all_cr_params["Table4.1"] = params_t1  # Save these specifically for the PINN's purged runs
+    ages_train   = df12[config.AGE_COL].values
+    heights_train = df12[config.TARGET_COL].values
+    ages_test    = df23[config.AGE_COL].values
+    heights_test  = df23[config.TARGET_COL].values
 
-    # --- Experiment for Table 4.3 (3-Fold CV within 2012) ---
-    print(f"\n--- Running Experiment for Table 4.3: 3-Fold CV within 2012 (Purged) ---")
-    cv12_metrics = []
-    for fold, (tr_idx, te_idx) in enumerate(get_kfold_splits(len(df12_purged), n_splits=3)):
-        m, _, _ = run_cr(df12_purged.iloc[tr_idx], df12_purged.iloc[te_idx])
-        cv12_metrics.append(m)
-    for k in cv12_metrics[0].keys():
-        all_results[f"Table4.3_{k}"] = float(np.mean([m[k] for m in cv12_metrics]))
-
-    # --- Experiment for Table 4.4 (3-Fold CV within 2023) ---
-    print(f"\n--- Running Experiment for Table 4.4: 3-Fold CV within 2023 (Purged) ---")
-    cv23_metrics = []
-    for fold, (tr_idx, te_idx) in enumerate(get_kfold_splits(len(df23_purged), n_splits=3)):
-        m, _, _ = run_cr(df23_purged.iloc[tr_idx], df23_purged.iloc[te_idx])
-        cv23_metrics.append(m)
-    for k in cv23_metrics[0].keys():
-        all_results[f"Table4.4_{k}"] = float(np.mean([m[k] for m in cv23_metrics]))
-
-    # --- Experiment using UNSEEN data (Table 4.2) ---
-    print("\n\n--- Loading UNSEEN data for Table 4.2 ---")
-    df12_unseen, df23_unseen, common_ids_unseen = load_data(config.DATA_PATH_UNSEEN)
-    print(f"\n--- Running Experiment for Table 4.2: Temporal (Unseen Plots) ---")
-    metrics_t2, params_t2, y_pred_t2 = run_cr(df12_unseen, df23_unseen, "Temporal (Table 4.2)")
-    for k, v in metrics_t2.items():
-        all_results[f"Table4.2_{k}"] = v
-    all_cr_params["Table4.2"] = params_t2  # Save these for the PINN's unseen run
-
-    X_coords_purged = df23_purged["X"].values
-    Y_coords_purged = df23_purged["Y"].values
-    y_test_purged = df23_purged[config.TARGET_COL].values
-    plot_cr_fit(
-        df12_unseen[config.AGE_COL].values,
-        df12_unseen[config.TARGET_COL].values,
-        params_t2["y_max"],
-        params_t2["k"],
-        params_t2["p"],
-        config.OUTPUT_DIR,
+    # ------------------------------------------------------------------ #
+    # 2. FIT THE CURVE                                                     #
+    # ------------------------------------------------------------------ #
+    # curve_fit finds y_max, k, p that minimise the squared error between
+    # the formula and the real 2012 measurements.
+    popt, _ = curve_fit(
+        chapman_richards,
+        ages_train, heights_train,
+        p0=config.CR_P0,        # initial guess for the optimiser
+        bounds=config.CR_BOUNDS,
+        maxfev=50_000,
     )
+    cr_ymax, cr_k, cr_p = popt
+    print(f"\nFitted CR params:  y_max={cr_ymax:.4f}  k={cr_k:.7f}  p={cr_p:.4f}")
+
+    # ------------------------------------------------------------------ #
+    # 3. PREDICT & EVALUATE                                                #
+    # ------------------------------------------------------------------ #
+    # Plug 2023 ages into the fitted formula to get predicted 2023 heights.
+    y_pred = chapman_richards(ages_test, cr_ymax, cr_k, cr_p)
+
+    metrics = reuben_metrics(heights_test, y_pred, label="Chapman-Richards (Table 4.1)")
+
+    # ------------------------------------------------------------------ #
+    # 4. SAVE OUTPUTS                                                      #
+    # ------------------------------------------------------------------ #
+    # cr_params.json is the physics prior loaded by the PINN.
+    params = {"Table4.1": {"y_max": float(cr_ymax), "k": float(cr_k), "p": float(cr_p)}}
+    with open(os.path.join(config.OUTPUT_DIR, "cr_params.json"), "w") as f:
+        json.dump(params, f, indent=2)
+
+    pd.DataFrame(list(metrics.items()), columns=["Metric", "Value"]).to_csv(
+        os.path.join(config.OUTPUT_DIR, "results.csv"), index=False
+    )
+
+    # Curve plot: shows how well the formula matches the 2012 training data
+    plot_cr_fit(ages_train, heights_train, cr_ymax, cr_k, cr_p, config.OUTPUT_DIR)
+
+    # Spatial error maps: colour-coded map of where predictions are most/least accurate
     plot_spatial_error(
-        X_coords_purged,
-        Y_coords_purged,
-        y_test_purged,
-        y_pred_t1,
-        "(c) Chapman-Richards",
-        config.OUTPUT_DIR,
+        df23["X"].values, df23["Y"].values,
+        heights_test, y_pred,
+        "(c) Chapman-Richards", config.OUTPUT_DIR,
     )
     plot_spatial_signed_error(
-        X_coords_purged,
-        Y_coords_purged,
-        y_test_purged,
-        y_pred_t1,
-        "(c) Chapman-Richards",
-        config.OUTPUT_DIR,
-    )
-    save_table_4_2_artifacts(
-        df12_unseen,
-        df23_unseen,
-        common_ids_unseen,
-        metrics_t2,
-        params_t2,
-        y_pred_t2,
+        df23["X"].values, df23["Y"].values,
+        heights_test, y_pred,
+        "(c) Chapman-Richards", config.OUTPUT_DIR,
     )
 
-    # ------------------------------------------------------------
-    # Save Outputs
-    # ------------------------------------------------------------
-    params_path = os.path.join(config.OUTPUT_DIR, "cr_params.json")
-    with open(params_path, "w") as f:
-        json.dump(all_cr_params, f, indent=2)
-    print(f"\nSaved fitted parameters to {params_path}")
-
-    pd.DataFrame(list(all_results.items()), columns=["Metric", "Value"]).to_csv(os.path.join(config.OUTPUT_DIR, "results.csv"), index=False)
-    print(f"Saved combined metrics to results.csv")
-
+    print(f"\nAll outputs saved to: {config.OUTPUT_DIR}")
 
 
 if __name__ == "__main__":
